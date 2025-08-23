@@ -1,12 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { generateAI } from "../services/api";
 
-export default function CasesPage({ initialCases }) {
-  const [cases, setCases] = useState(initialCases || []);
+export default function CasesPage() {
+  const [cases, setCases] = useState([]);
+
+  useEffect(() => {
+    // Load cases from localStorage if they exist
+    const storedCases = localStorage.getItem("cases");
+    if (storedCases) {
+      setCases(JSON.parse(storedCases));
+    }
+  }, []);
 
   const handleGenerate = async () => {
-    const data = await generateAI(cases);
-    setCases(data.results);
+    try {
+      const data = await generateAI(cases);
+      setCases(data.results);
+      localStorage.setItem("cases", JSON.stringify(data.results)); // update storage
+    } catch (err) {
+      console.error("AI generation failed:", err);
+    }
   };
 
   return (
