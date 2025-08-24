@@ -1,21 +1,22 @@
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import UploadPage from "./pages/UploadPage";
-import CasesPage from "./pages/CasesPage";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import CasesPage from './pages/CasesPage';
+import FollowupsPage from './pages/FollowupsPage';
+import UploadPage from './pages/UploadPage';
+import Navigation from './components/Navigation';
 
 function App() {
   return (
     <Router>
-      <nav className="p-4 bg-gray-800 text-white">
-        <Link to="/upload" className="mr-4">
-          Upload PDF
-        </Link>
-        <Link to="/cases">Cases</Link>
-      </nav>
-
-      <Routes>
-        <Route path="/upload" element={<UploadPage />} />
-        <Route path="/cases" element={<CasesPage />} />
-      </Routes>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <Routes>
+          <Route path="/" element={<Navigate to="/cases" replace />} />
+          <Route path="/cases" element={<CasesPage />} />
+          <Route path="/followups" element={<FollowupsPage />} />
+          <Route path="/upload" element={<UploadPage />} />
+        </Routes>
+      </div>
     </Router>
   );
 }

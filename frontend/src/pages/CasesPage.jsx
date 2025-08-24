@@ -1,61 +1,176 @@
-import { useState, useEffect } from "react";
-import { generateAI } from "../services/api";
+import React, { useState, useEffect } from 'react';
+import CasesTable from '../components/CasesTable';
+import UploadModal from '../components/UploadModal';
+import { fetchCasesWithFollowups } from '../services/api';
 
-export default function CasesPage() {
+const CasesPage = () => {
   const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
-  useEffect(() => {
-    // Load cases from localStorage if they exist
-    const storedCases = localStorage.getItem("cases");
-    if (storedCases) {
-      setCases(JSON.parse(storedCases));
-    }
-  }, []);
-
-  const handleGenerate = async () => {
+  const loadCases = async () => {
     try {
-      const data = await generateAI(cases);
-      setCases(data.results);
-      localStorage.setItem("cases", JSON.stringify(data.results)); // update storage
+      setLoading(true);
+      const data = await fetchCasesWithFollowups();
+      setCases(data);
+      setError(null);
     } catch (err) {
-      console.error("AI generation failed:", err);
+      console.error('Failed to load cases:', err);
+      setError('Failed to load cases. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">All Cases</h1>
-      <button
-        onClick={handleGenerate}
-        className="mb-4 px-4 py-2 bg-green-500 text-white rounded"
-      >
-        Generate AI Follow-up
-      </button>
+  useEffect(() => {
+    loadCases();
+  }, []);
 
-      <table className="min-w-full border">
-        <thead>
-          <tr>
-            <th className="border px-4 py-2">Room</th>
-            <th className="border px-4 py-2">Status</th>
-            <th className="border px-4 py-2">Assigned Agent</th>
-            <th className="border px-4 py-2">Suggested Follow-up</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cases.map((c, i) => (
-            <tr key={i}>
-              <td className="border px-4 py-2">{c.room}</td>
-              <td className="border px-4 py-2">{c.status}</td>
-              <td className="border px-4 py-2">
-                {c.assigned_to || "Unassigned"}
-              </td>
-              <td className="border px-4 py-2">
-                {c.suggested_feedback || "-"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  const handleWorkflowComplete = () => {
+    // Refresh the cases list after workflow completion
+    loadCases();
+  };
+
+  const handleOpenUploadModal = () => {
+    setShowUploadModal(true);
+  };
+
+  const handleCloseUploadModal = () => {
+    setShowUploadModal(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading cases...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <p className="text-red-600 text-lg mb-4">{error}</p>
+          <button
+            onClick={loadCases}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Cases Management</h1>
+          <p className="text-gray-600">
+            View and manage all cases with their associated followups
+          </p>
+        </div>
+        <button
+          onClick={handleOpenUploadModal}
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+        >
+          <span>📄</span>
+          <span>Start New Workflow</span>
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <span className="text-2xl">📋</span>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Cases</p>
+              <p className="text-2xl font-bold text-gray-900">{cases.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <span className="text-2xl">⏳</span>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Pending</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {cases.filter(c => c.status === 'pending').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <span className="text-2xl">✅</span>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Resolved</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {cases.filter(c => c.status === 'resolved').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <span className="text-2xl">💬</span>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Followups</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {cases.reduce((total, c) => total + (c.followups?.length || 0), 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Cases Table */}
+      {cases.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="text-6xl text-gray-300 mb-4">📋</div>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">No Cases Yet</h3>
+          <p className="text-gray-500 mb-6">
+            Get started by uploading a PDF document to create your first case
+          </p>
+          <button
+            onClick={handleOpenUploadModal}
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Start Your First Workflow
+          </button>
+        </div>
+      ) : (
+        <CasesTable cases={cases} />
+      )}
+
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={handleCloseUploadModal}
+        onWorkflowComplete={handleWorkflowComplete}
+      />
     </div>
   );
-}
+};
+
+export default CasesPage;

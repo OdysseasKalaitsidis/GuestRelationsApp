@@ -1,5 +1,13 @@
-from db import Base, engine
-from models import User, Case, Followup
+from db import engine
+from models import Base
 
-Base.metadata.create_all(bind=engine)
-print("Tables created successfully!")
+def create_tables():
+    """Create all database tables"""
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        print(f"❌ Error creating tables: {e}")
+
+if __name__ == "__main__":
+    create_tables()

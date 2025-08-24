@@ -52,12 +52,17 @@ def parse_cases(text: str) -> list:
         case_match = re.search(r'Case:\s*((?:.|\n)*?)\s*Action:', block, re.DOTALL)
         action_match = re.search(r'Action:\s*((?:.|\n)*)', block, re.DOTALL)
 
+        # Extract title and ensure it's never None
+        title = case_match.group(1).strip() if case_match else None
+        if not title or title.strip() == "":
+            title = "Untitled Case"  # Provide default title
+        
         cases.append({
             "room": room_match.group(1) if room_match else None,
             "status": status_match.group(1) if status_match else None,
             "importance": importance_match.group(1) if importance_match else None,
             "type": type_match.group(1) if type_match else None,
-            "case": case_match.group(1).strip() if case_match else None,
+            "title": title,  # This will never be None now
             "action": action_match.group(1).strip() if action_match else None
         })
 

@@ -19,24 +19,27 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False)
-
+    
     # Relationships
     cases = relationship("Case", back_populates="owner")
     followups = relationship("Followup", back_populates="assigned_user")
 
-
-# Case model
 class Case(Base):
     __tablename__ = "cases"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    room = Column(String(50))
+    status = Column(String(50))
+    importance = Column(String(50))
+    type = Column(String(50))
+    title = Column(Text)  # rename "case" -> "title"
+    action = Column(Text)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Made nullable
 
-    # Relationships
     owner = relationship("User", back_populates="cases")
     followups = relationship("Followup", back_populates="case")
+
+
 
 
 # Followup model
@@ -46,7 +49,7 @@ class Followup(Base):
     id = Column(Integer, primary_key=True, index=True)
     case_id = Column(Integer, ForeignKey("cases.id"))
     suggestion_text = Column(Text, nullable=False)
-    status = Column(Enum(FollowupStatus), default=FollowupStatus.pending)
+    status = Column(Enum(FollowupStatus, native_enum=False), default=FollowupStatus.pending)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Relationships
