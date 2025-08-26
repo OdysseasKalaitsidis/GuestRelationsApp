@@ -1,0 +1,15 @@
+# Minimal configuration for Railway
+# This should work if other configurations fail
+
+[phases.setup]
+nixPkgs = ["nodejs", "python311"]
+
+[phases.install]
+cmds = [
+    "cd frontend && npm install",
+    "cd frontend && npm run build",
+    "cd backend && pip install -r requirements.txt"
+]
+
+[start]
+cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"

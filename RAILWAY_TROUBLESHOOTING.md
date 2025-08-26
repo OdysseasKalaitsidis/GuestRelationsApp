@@ -2,27 +2,28 @@
 
 This guide helps resolve common Railway build issues.
 
-## Issue: Nixpacks Build Failure with "undefined variable 'npm'"
+## Issue: Nixpacks Build Failure with "undefined variable 'npm' or 'pip'"
 
 ### Problem
 ```
 error: undefined variable 'npm'
+error: undefined variable 'pip'
 at /app/.nixpacks/nixpkgs-xxx.nix:19:16:
 ```
 
 ### Solution
-The issue is that `npm` is not a separate package in Nix - it comes bundled with `nodejs`.
+The issue is that `npm` and `pip` are not separate packages in Nix - they come bundled with their respective runtimes.
 
 **Fixed Configuration:**
 ```toml
 [phases.setup]
-nixPkgs = ["nodejs", "python311", "pip"]
+nixPkgs = ["nodejs", "python311"]
 ```
 
 **NOT:**
 ```toml
 [phases.setup]
-nixPkgs = ["nodejs", "npm", "python311", "pip"]  # ❌ npm is bundled with nodejs
+nixPkgs = ["nodejs", "npm", "python311", "pip"]  # ❌ npm and pip are bundled
 ```
 
 ## Alternative Solutions
@@ -32,6 +33,13 @@ If the main `nixpacks.toml` still fails, try using `nixpacks-simple.toml`:
 
 1. Rename `nixpacks.toml` to `nixpacks-backup.toml`
 2. Rename `nixpacks-simple.toml` to `nixpacks.toml`
+3. Deploy again
+
+### Option 1b: Use Minimal Configuration
+If the simple configuration still fails, try `nixpacks-minimal.toml`:
+
+1. Rename `nixpacks.toml` to `nixpacks-backup.toml`
+2. Rename `nixpacks-minimal.toml` to `nixpacks.toml`
 3. Deploy again
 
 ### Option 2: Remove Nixpacks Configuration
