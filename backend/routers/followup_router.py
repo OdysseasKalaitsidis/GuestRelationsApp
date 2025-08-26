@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from db import get_db
-from services.followup_service import get_all_followups, delete_followup, create_followup, update_followup, get_followup_by_id
+from services.followup_service import get_all_followups, delete_followup, create_followup, update_followup, get_followup_by_id, get_followups_with_case_info
 from schemas.followup import FollowupCreate, FollowupUpdate, FollowupOut
 
 router = APIRouter(prefix="/followups", tags=["Followups"])
@@ -16,6 +16,11 @@ def create_new_followup(followup: FollowupCreate, db: Session = Depends(get_db))
 def read_followups(db: Session = Depends(get_db)):
     """Get all followups"""
     return get_all_followups(db)
+
+@router.get("/with-case-info")
+def read_followups_with_case_info(db: Session = Depends(get_db)):
+    """Get all followups with case information including room"""
+    return get_followups_with_case_info(db)
 
 @router.get("/{followup_id}", response_model=FollowupOut)
 def read_followup(followup_id: int, db: Session = Depends(get_db)):

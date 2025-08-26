@@ -30,7 +30,6 @@ export default function FollowupsPage() {
     setEditingId(followup.id);
     setEditForm({
       suggestion_text: followup.suggestion_text,
-      status: followup.status,
       assigned_to: followup.assigned_to
     });
   };
@@ -64,15 +63,7 @@ export default function FollowupsPage() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   if (loading) {
     return (
@@ -124,14 +115,12 @@ export default function FollowupsPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Case ID
+                Room
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Suggestion
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
+
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Assigned To
               </th>
@@ -144,7 +133,7 @@ export default function FollowupsPage() {
             {followups.map((followup) => (
               <tr key={followup.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {followup.case_id}
+                  {followup.room || 'N/A'}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
                   {editingId === followup.id ? (
@@ -158,24 +147,7 @@ export default function FollowupsPage() {
                     followup.suggestion_text
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {editingId === followup.id ? (
-                    <select
-                      value={editForm.status}
-                      onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                      className="border border-gray-300 rounded px-2 py-1"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="completed">Completed</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  ) : (
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(followup.status)}`}>
-                      {followup.status || 'pending'}
-                    </span>
-                  )}
-                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {editingId === followup.id ? (
                     <input

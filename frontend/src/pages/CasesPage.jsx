@@ -107,9 +107,9 @@ const CasesPage = () => {
               <span className="text-2xl">⏳</span>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending</p>
+              <p className="text-sm font-medium text-gray-600">In Progress</p>
               <p className="text-2xl font-bold text-gray-900">
-                {cases.filter(c => c.status === 'pending').length}
+                {cases.filter(c => c.status === 'in_progress').length}
               </p>
             </div>
           </div>
@@ -123,7 +123,7 @@ const CasesPage = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Resolved</p>
               <p className="text-2xl font-bold text-gray-900">
-                {cases.filter(c => c.status === 'resolved').length}
+                {cases.filter(c => c.status === 'completed').length}
               </p>
             </div>
           </div>
@@ -160,7 +160,7 @@ const CasesPage = () => {
           </button>
         </div>
       ) : (
-        <CasesTable cases={cases} />
+        <CasesTable cases={cases} onCaseUpdate={loadCases} />
       )}
 
       {/* Upload Modal */}

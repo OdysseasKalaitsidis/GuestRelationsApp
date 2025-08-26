@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from models import Case
-from schemas.case import CaseCreate
-from typing import List, Dict, Any
+from schemas.case import CaseCreate, CaseUpdate
+from typing import List, Dict, Any, Optional
 
 # Create a single case
 def create_case(db: Session, case: CaseCreate) -> Case:
@@ -28,6 +28,21 @@ def get_cases(db: Session) -> List[Case]:
 def get_case_by_id(db: Session, case_id: int) -> Case:
     return db.query(Case).filter(Case.id == case_id).first()
 
+# Update a case
+def update_case(db: Session, case_id: int, case_update: CaseUpdate) -> Optional[Case]:
+    """Update a case by ID"""
+    db_case = db.query(Case).filter(Case.id == case_id).first()
+    if not db_case:
+        return None
+    
+    update_data = case_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_case, field, value)
+    
+    db.commit()
+    db.refresh(db_case)
+    return db_case
+
 # Retrieve cases with their followups
 def get_cases_with_followups(db: Session) -> List[Dict[str, Any]]:
     """Get all cases with their associated followups"""
@@ -51,7 +66,6 @@ def get_cases_with_followups(db: Session) -> List[Dict[str, Any]]:
             case_data["followups"].append({
                 "id": followup.id,
                 "suggestion_text": followup.suggestion_text,
-                "status": followup.status.value if followup.status else None,
                 "assigned_to": followup.assigned_to
             })
         

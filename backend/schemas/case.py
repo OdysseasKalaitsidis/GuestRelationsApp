@@ -10,6 +10,15 @@ class CaseCreate(BaseModel):
     action: Optional[str] = None
     owner_id: Optional[int] = None
 
+class CaseUpdate(BaseModel):
+    room: Optional[str] = None
+    status: Optional[str] = None
+    importance: Optional[str] = None
+    type: Optional[str] = None
+    title: Optional[str] = None
+    action: Optional[str] = None
+    owner_id: Optional[int] = None
+
 class CaseResponse(CaseCreate):
     id: int
 

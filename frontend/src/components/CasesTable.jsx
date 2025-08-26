@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { updateCaseStatus } from "../services/api";
 
-export default function CasesTable({ cases }) {
+export default function CasesTable({ cases, onCaseUpdate }) {
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [updatingStatus, setUpdatingStatus] = useState(new Set());
 
   const toggleRow = (caseId) => {
     const newExpanded = new Set(expandedRows);
@@ -29,6 +31,29 @@ export default function CasesTable({ cases }) {
       case 'medium': return 'bg-yellow-100 text-yellow-800';
       case 'low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleStatusUpdate = async (caseId, newStatus) => {
+    try {
+      setUpdatingStatus(prev => new Set(prev).add(caseId));
+      console.log('Updating case', caseId, 'to status', newStatus);
+      const result = await updateCaseStatus(caseId, newStatus);
+      console.log('Update result:', result);
+      
+      // Call the parent component's update function to refresh the cases
+      if (onCaseUpdate) {
+        onCaseUpdate();
+      }
+    } catch (error) {
+      console.error('Failed to update case status:', error);
+      alert(`Failed to update case status: ${error.message}`);
+    } finally {
+      setUpdatingStatus(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(caseId);
+        return newSet;
+      });
     }
   };
 
@@ -79,9 +104,19 @@ export default function CasesTable({ cases }) {
                   {caseItem.room || 'N/A'}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(caseItem.status)}`}>
-                    {caseItem.status || 'N/A'}
-                  </span>
+                  <select
+                    value={caseItem.status || ''}
+                    onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
+                    disabled={updatingStatus.has(caseItem.id)}
+                    className={`text-xs font-semibold rounded-full border-0 px-2 py-1 ${getStatusColor(caseItem.status)} ${
+                      updatingStatus.has(caseItem.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    }`}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>

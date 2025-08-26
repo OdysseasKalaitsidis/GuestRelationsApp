@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-const Navigation = () => {
+const Navigation = ({ user, onLogout }) => {
   const location = useLocation();
   
   const isActive = (path) => {
@@ -37,17 +37,43 @@ const Navigation = () => {
               >
                 💬 Followups
               </Link>
-              <Link
-                to="/upload"
-                className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors ${
-                  isActive('/upload')
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                }`}
-              >
-                📄 Upload
-              </Link>
+                    <Link
+        to="/tasks"
+        className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors ${
+          isActive('/tasks')
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+        }`}
+      >
+        📋 Tasks
+      </Link>
+      <Link
+        to="/email-ai"
+        className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors ${
+          isActive('/email-ai')
+            ? 'border-blue-500 text-blue-600'
+            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+        }`}
+      >
+        🤖 Email AI
+      </Link>
             </div>
+          </div>
+          
+          {/* User info and logout */}
+          <div className="flex items-center space-x-4">
+            <div className="hidden sm:block">
+              <span className="text-sm text-gray-700">
+                Welcome, <span className="font-medium">{user?.name}</span>
+                {user?.is_admin && <span className="ml-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Admin</span>}
+              </span>
+            </div>
+            <button
+              onClick={onLogout}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md hover:bg-gray-100"
+            >
+              Logout
+            </button>
           </div>
           
           {/* Mobile menu button */}

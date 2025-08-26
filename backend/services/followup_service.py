@@ -1,7 +1,7 @@
-from sqlalchemy.orm import Session
-from models import Followup
+from sqlalchemy.orm import Session, joinedload
+from models import Followup, Case
 from schemas.followup import FollowupCreate, FollowupUpdate
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 def create_followup(db: Session, followup: FollowupCreate) -> Followup:
     """Create a new followup"""
@@ -14,6 +14,23 @@ def create_followup(db: Session, followup: FollowupCreate) -> Followup:
 def get_all_followups(db: Session) -> List[Followup]:
     """Get all followups"""
     return db.query(Followup).all()
+
+def get_followups_with_case_info(db: Session) -> List[Dict[str, Any]]:
+    """Get all followups with case information including room"""
+    followups = db.query(Followup).join(Case).all()
+    result = []
+    
+    for followup in followups:
+        followup_data = {
+            "id": followup.id,
+            "case_id": followup.case_id,
+            "room": followup.case.room if followup.case else None,
+            "suggestion_text": followup.suggestion_text,
+            "assigned_to": followup.assigned_to
+        }
+        result.append(followup_data)
+    
+    return result
 
 def get_followup_by_id(db: Session, followup_id: int) -> Optional[Followup]:
     """Get a followup by ID"""
