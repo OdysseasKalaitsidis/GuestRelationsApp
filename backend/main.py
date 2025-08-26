@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from routers import (
     pdf_router, ai_router, followup_router, case_router, 
@@ -40,6 +41,10 @@ app.include_router(workflow_router.router, prefix="/api", tags=["Workflow"])
 app.include_router(chat_router.router, prefix="/api", tags=["Chat"])
 app.include_router(training_router.router, prefix="/api", tags=["Training"])
 
+# Mount static files (built frontend)
+if os.path.exists("static"):
+    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 # CORS Configuration
 if ENVIRONMENT == "development":
     origins = [
@@ -52,6 +57,11 @@ else:
     # Production CORS - restrict to specific domains
     allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
     origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+    
+    # Add Railway domain if not already included
+    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    if railway_domain and f"https://{railway_domain}" not in origins:
+        origins.append(f"https://{railway_domain}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,9 +73,15 @@ app.add_middleware(
 
 # Add trusted host middleware for production
 if ENVIRONMENT == "production":
+    allowed_hosts = ["*"]  # Railway handles this
+    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    if railway_domain:
+        allowed_hosts.append(railway_domain)
+        allowed_hosts.append(f"*.{railway_domain}")
+    
     app.add_middleware(
         TrustedHostMiddleware, 
-        allowed_hosts=["yourdomain.com", "*.yourdomain.com"]
+        allowed_hosts=allowed_hosts
     )
 
 @app.get("/")

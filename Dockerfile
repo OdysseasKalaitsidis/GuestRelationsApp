@@ -1,14 +1,13 @@
-# Multi-stage build for production
+# Frontend build stage
 FROM node:18-alpine AS frontend-build
 
-# Set working directory
 WORKDIR /app/frontend
 
 # Copy package files
 COPY frontend/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code
 COPY frontend/ ./
@@ -16,10 +15,9 @@ COPY frontend/ ./
 # Build the application
 RUN npm run build
 
-# Python backend stage
-FROM python:3.11-slim AS backend
+# Backend stage
+FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
 # Install system dependencies
@@ -27,6 +25,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
     pkg-config \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -39,8 +38,8 @@ COPY backend/ ./
 # Copy built frontend from previous stage
 COPY --from=frontend-build /app/frontend/dist ./static
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create necessary directories
+RUN mkdir -p uploads logs
 
 # Expose port
 EXPOSE 8000

@@ -92,7 +92,20 @@ A comprehensive web application for managing guest relations cases, PDF processi
 
 ## Production Deployment
 
-### Using Docker (Recommended)
+### Railway (Recommended for Cloud)
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/deploy)
+
+**Quick Deploy**:
+1. Click the Railway button above
+2. Connect your GitHub repository
+3. Add MySQL database service
+4. Set environment variables
+5. Deploy!
+
+See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for detailed instructions.
+
+### Using Docker (Local/Server)
 
 1. **Build and run with Docker Compose**
    ```bash
