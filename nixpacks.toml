@@ -1,16 +1,16 @@
 [phases.setup]
-nixPkgs = ["nodejs", "npm", "python39", "pip"]
+nixPkgs = ["nodejs", "python311", "pip"]
 
 [phases.install]
 cmds = [
-    "cd frontend && npm ci",
+    "cd frontend && npm ci --prefer-offline --no-audit",
     "cd frontend && npm run build",
-    "cd backend && pip install -r requirements.txt"
+    "cd backend && pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
-    "echo 'Build completed'"
+    "echo 'Build completed successfully'"
 ]
 
 [start]
