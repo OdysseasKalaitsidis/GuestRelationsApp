@@ -23,28 +23,38 @@ ENV GENERATE_SOURCEMAP=false
 RUN npm run build
 
 # Backend stage
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# Install system dependencies for Alpine
+RUN apk add --no-cache \
     gcc \
-    default-libmysqlclient-dev \
-    pkg-config \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    musl-dev \
+    mariadb-dev \
+    pkgconfig \
+    curl
 
 # Copy requirements and install Python dependencies
 COPY backend/requirements.txt .
 
-# Upgrade pip first
-RUN pip install --no-cache-dir --upgrade pip
-
-# Install dependencies with memory optimization and pre-compiled wheels
-RUN pip install --no-cache-dir --only-binary=all -r requirements.txt
+# Install dependencies in very small batches to avoid memory issues
+RUN pip install --no-cache-dir fastapi==0.104.1
+RUN pip install --no-cache-dir uvicorn[standard]==0.24.0
+RUN pip install --no-cache-dir sqlalchemy==2.0.23
+RUN pip install --no-cache-dir pymysql==1.1.0
+RUN pip install --no-cache-dir python-multipart==0.0.6
+RUN pip install --no-cache-dir python-dotenv==1.0.0
+RUN pip install --no-cache-dir openai==1.3.7
+RUN pip install --no-cache-dir alembic==1.12.1
+RUN pip install --no-cache-dir requests==2.31.0
+RUN pip install --no-cache-dir python-jose[cryptography]==3.3.0
+RUN pip install --no-cache-dir passlib[bcrypt]==1.7.4
+RUN pip install --no-cache-dir email-validator==2.1.0
+RUN pip install --no-cache-dir reportlab==4.0.7
+RUN pip install --no-cache-dir PyPDF2==3.0.1
+RUN pip install --no-cache-dir scikit-learn==1.3.2
+RUN pip install --no-cache-dir numpy==1.24.3
 
 # Copy backend code
 COPY backend/ ./
