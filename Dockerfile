@@ -10,10 +10,14 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci --silent
+RUN npm ci --prefer-offline --no-audit
 
 # Copy source code
 COPY frontend/ ./
+
+# Set environment variables for build
+ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
 
 # Build the application
 RUN npm run build
@@ -35,8 +39,12 @@ RUN apt-get update && \
 
 # Copy requirements and install Python dependencies
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+
+# Upgrade pip first
+RUN pip install --no-cache-dir --upgrade pip
+
+# Install dependencies with memory optimization and pre-compiled wheels
+RUN pip install --no-cache-dir --only-binary=all -r requirements.txt
 
 # Copy backend code
 COPY backend/ ./
