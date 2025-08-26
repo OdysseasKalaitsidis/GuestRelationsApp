@@ -17,7 +17,7 @@ The issue is that `npm` and `pip` are not separate packages in Nix - they come b
 **Fixed Configuration:**
 ```toml
 [phases.setup]
-nixPkgs = ["nodejs", "python311"]
+nixPkgs = ["nodejs_20", "python311"]
 ```
 
 **NOT:**
@@ -59,6 +59,16 @@ If Nixpacks continues to have issues:
 3. This gives you full control over the build process
 
 ## Common Build Issues
+
+### Node.js Version Issues
+- **Issue**: "Vite requires Node.js version 20.19+ or 22.12+"
+- **Solution**: Use `nodejs_20` in nixpacks.toml instead of `nodejs`
+- **Debug**: Check Node.js version with `node --version`
+
+### Missing Terser Dependency
+- **Issue**: "terser not found. Since Vite v3, terser has become an optional dependency"
+- **Solution**: Add `"terser": "^5.24.0"` to devDependencies in package.json
+- **Debug**: Check if terser is listed in package.json
 
 ### Frontend Build Failures
 - **Issue**: Frontend build fails during `npm run build`

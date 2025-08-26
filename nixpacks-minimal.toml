@@ -2,7 +2,7 @@
 # This should work if other configurations fail
 
 [phases.setup]
-nixPkgs = ["nodejs", "python311"]
+nixPkgs = ["nodejs_20", "python311"]
 
 [phases.install]
 cmds = [

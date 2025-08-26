@@ -2,7 +2,7 @@
 # Use this if the main nixpacks.toml doesn't work
 
 [phases.setup]
-nixPkgs = ["nodejs", "python311"]
+nixPkgs = ["nodejs_20", "python311"]
 
 [phases.install]
 cmds = [
