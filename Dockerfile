@@ -1,13 +1,16 @@
 # Frontend build stage
 FROM node:18-alpine AS frontend-build
 
+# Install necessary build tools for Alpine
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app/frontend
 
 # Copy package files
 COPY frontend/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (including devDependencies for build)
+RUN npm ci --silent
 
 # Copy source code
 COPY frontend/ ./
@@ -21,16 +24,19 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     gcc \
     default-libmysqlclient-dev \
     pkg-config \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy requirements and install Python dependencies
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
 COPY backend/ ./
