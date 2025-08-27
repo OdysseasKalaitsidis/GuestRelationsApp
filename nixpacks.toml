@@ -1,14 +1,12 @@
+# Clean backend-only configuration for Railway
+# This only builds and deploys the Python FastAPI backend
+
 [phases.setup]
 nixPkgs = ["python311"]
 
 [phases.install]
 cmds = [
-    "cd backend && pip install --no-cache-dir -r requirements.txt"
-]
-
-[phases.build]
-cmds = [
-    "echo 'Backend build completed successfully'"
+    "cd backend && pip install -r requirements.txt"
 ]
 
 [start]

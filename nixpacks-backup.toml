@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = [
+    "cd backend && pip install --no-cache-dir -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+    "echo 'Backend build completed successfully'"
+]
+
+[start]
+cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
