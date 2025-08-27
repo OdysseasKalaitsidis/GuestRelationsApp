@@ -1,16 +1,14 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "python311"]
+nixPkgs = ["python311"]
 
 [phases.install]
 cmds = [
-    "cd frontend && npm ci --prefer-offline --no-audit",
-    "cd frontend && npm run build",
     "cd backend && pip install --no-cache-dir -r requirements.txt"
 ]
 
 [phases.build]
 cmds = [
-    "echo 'Build completed successfully'"
+    "echo 'Backend build completed successfully'"
 ]
 
 [start]

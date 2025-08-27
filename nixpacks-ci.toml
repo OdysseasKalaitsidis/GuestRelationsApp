@@ -1,0 +1,20 @@
+# Configuration that uses npm ci (faster, more reliable)
+# Use this once the lock file is properly updated
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "python311"]
+
+[phases.install]
+cmds = [
+    "cd frontend && npm ci --no-audit",
+    "cd frontend && npm run build",
+    "cd backend && pip install --no-cache-dir -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+    "echo 'Build completed successfully'"
+]
+
+[start]
+cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"

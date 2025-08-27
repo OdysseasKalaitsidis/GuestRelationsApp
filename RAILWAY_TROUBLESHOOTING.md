@@ -42,6 +42,13 @@ If the simple configuration still fails, try `nixpacks-minimal.toml`:
 2. Rename `nixpacks-minimal.toml` to `nixpacks.toml`
 3. Deploy again
 
+### Option 1c: Use CI Configuration (After Lock File Update)
+If you've updated package-lock.json locally, try `nixpacks-ci.toml`:
+
+1. Rename `nixpacks.toml` to `nixpacks-backup.toml`
+2. Rename `nixpacks-ci.toml` to `nixpacks.toml`
+3. Deploy again
+
 ### Option 2: Remove Nixpacks Configuration
 If Nixpacks continues to fail:
 
@@ -69,6 +76,11 @@ If Nixpacks continues to have issues:
 - **Issue**: "terser not found. Since Vite v3, terser has become an optional dependency"
 - **Solution**: Add `"terser": "^5.24.0"` to devDependencies in package.json
 - **Debug**: Check if terser is listed in package.json
+
+### NPM CI Lock File Issues
+- **Issue**: "Missing: buffer-from@1.1.2 from lock file" or similar lock file errors
+- **Solution**: Use `npm install` instead of `npm ci` in nixpacks.toml, or update package-lock.json
+- **Debug**: Run `npm install` locally to update the lock file
 
 ### Frontend Build Failures
 - **Issue**: Frontend build fails during `npm run build`

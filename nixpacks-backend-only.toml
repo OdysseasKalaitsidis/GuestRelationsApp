@@ -1,0 +1,13 @@
+# Backend-only configuration for Railway
+# This only builds and deploys the Python FastAPI backend
+
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = [
+    "cd backend && pip install -r requirements.txt"
+]
+
+[start]
+cmd = "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
