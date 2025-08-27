@@ -1,14 +1,13 @@
-# Minimal configuration for Railway
-# This should work if other configurations fail
+# Minimal backend configuration for Railway
+# Uses simplified requirements without heavy dependencies
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "python311"]
+nixPkgs = ["python311"]
 
 [phases.install]
 cmds = [
-    "cd frontend && npm install",
-    "cd frontend && npm run build",
-    "cd backend && pip install -r requirements.txt"
+    "cd backend && python -m pip install --upgrade pip",
+    "cd backend && python -m pip install --no-cache-dir -r requirements-minimal.txt"
 ]
 
 [start]
