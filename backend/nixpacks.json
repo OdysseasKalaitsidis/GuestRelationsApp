@@ -5,12 +5,12 @@
       "type": "python",
       "version": "3.11",
       "entrypoint": "uvicorn main:app --host 0.0.0.0 --port $PORT",
-      "install_command": "pip install --upgrade pip setuptools wheel && pip install -r requirements.txt"
+      "install_command": "python3.11 -m venv --copies /opt/venv && . /opt/venv/bin/activate && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt"
     },
     {
       "type": "node",
       "version": "18",
-      "build_command": "cd frontend && npm install && npm run build && cp -r build ../backend/frontend_build"
+      "build_command": "cd ../frontend && npm install && npm run build && cp -r build ../backend/frontend_build"
     }
   ]
 }
