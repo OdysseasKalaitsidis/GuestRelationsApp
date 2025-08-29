@@ -10,7 +10,7 @@
     {
       "type": "node",
       "version": "18",
-      "build_command": "cd ../frontend && npm install && npm run build && cp -r build ../backend/frontend_build"
+      "build_command": "cd frontend && npm install && npm run build && cp -r build ../backend/frontend_build"
     }
   ]
 }
