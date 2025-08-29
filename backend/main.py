@@ -6,9 +6,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from routers import (
-    pdf_router, ai_router, followup_router, case_router, 
-    workflow_router, auth_route, user_router, task_router, 
-    chat_router, training_router
+    document_router, followup_router, case_router, 
+    auth_route, user_router, task_router, anonymization_router
 )
 from logging_config import setup_logging
 
@@ -23,7 +22,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 app = FastAPI(
     title="Guest Relations API",
-    description="A comprehensive API for managing guest relations cases, PDF processing, and AI-powered followups",
+    description="A comprehensive API for managing guest relations cases, document processing (PDF/DOCX), and AI-powered followups",
     version="1.0.0",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     redoc_url="/redoc" if ENVIRONMENT == "development" else None
@@ -33,13 +32,10 @@ app = FastAPI(
 app.include_router(auth_route.router, prefix="/api", tags=["Authentication"])
 app.include_router(user_router.router, prefix="/api", tags=["Users"])
 app.include_router(task_router.router, prefix="/api", tags=["Tasks"])
-app.include_router(pdf_router.router, prefix="/api", tags=["PDF Processing"])
-app.include_router(ai_router.router, prefix="/api", tags=["AI Services"])
+app.include_router(document_router.router, prefix="/api", tags=["Document Processing"])
 app.include_router(followup_router.router, prefix="/api", tags=["Followups"])
 app.include_router(case_router.router, prefix="/api", tags=["Cases"])
-app.include_router(workflow_router.router, prefix="/api", tags=["Workflow"])
-app.include_router(chat_router.router, prefix="/api", tags=["Chat"])
-app.include_router(training_router.router, prefix="/api", tags=["Training"])
+app.include_router(anonymization_router.router, prefix="/api", tags=["Anonymization"])
 
 # Mount static files (built frontend)
 if os.path.exists("static"):
@@ -112,8 +108,10 @@ async def log_requests(request: Request, call_next):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app", 
-        host="0.0.0.0", 
-        port=8000, 
-        reload=ENVIRONMENT == "development"
-    )
+    "main:app", 
+    host="0.0.0.0", 
+    port=int(os.getenv("PORT", 8000)),
+    reload=ENVIRONMENT == "development"
+)
+
+    

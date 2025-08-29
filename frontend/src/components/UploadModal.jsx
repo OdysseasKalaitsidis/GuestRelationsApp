@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
   uploadPDF,
-  generateAI,
   createMultipleCases,
   createFollowup,
   fetchUsers,
+  uploadDocument,
+  completeWorkflow,
 } from "../services/api";
 import UploadStep from "./upload/UploadStep";
 import ReviewStep from "./upload/ReviewStep";
@@ -49,20 +50,20 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     }
   }, [isOpen]);
 
-  // ---------- Step 1: Upload PDF ----------
+  // ---------- Step 1: Upload Document ----------
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type === "application/pdf") {
+    if (file && (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.docx'))) {
       setPdfFile(file);
       setError(null);
     } else {
-      setError("Please select a valid PDF file");
+      setError("Please select a valid PDF or Word document (.pdf or .docx)");
     }
   };
 
   const handleUpload = async () => {
     if (!pdfFile) {
-      setError("Please select a PDF file first");
+      setError("Please select a document file first");
       return;
     }
     setIsLoading(true);
@@ -71,7 +72,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     try {
       const extracted = await uploadPDF(pdfFile);
       if (!extracted.cases || extracted.cases.length === 0) {
-        setError("No cases found in PDF. Check your document.");
+        setError("No cases found in document. Check your document.");
         setIsLoading(false);
         return;
       }
@@ -80,7 +81,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       setCurrentStep(2);
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to process PDF");
+      setError(err.message || "Failed to process document");
     } finally {
       setIsLoading(false);
     }
@@ -91,12 +92,20 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const suggestions = await generateAI(pdfCases);
-      const feedbackCases = pdfCases.map((c, i) => ({
+      // Use the complete workflow instead of separate AI generation
+      const workflowResult = await completeWorkflow(pdfFile);
+      
+      // Extract cases and feedback from workflow result
+      const feedbackCases = workflowResult.cases_created > 0 ? 
+        workflowResult.steps.find(step => step.step === "AI Feedback")?.data?.suggestions || [] : [];
+      
+      // Map feedback to cases
+      const casesWithFeedback = pdfCases.map((c, i) => ({
         ...c,
-        feedback: suggestions[i]?.suggestion_text || "No feedback generated",
+        feedback: feedbackCases[i]?.suggestion_text || "No feedback generated",
       }));
-      setAiFeedback(feedbackCases);
+      
+      setAiFeedback(casesWithFeedback);
       setCurrentStep(3);
     } catch (err) {
       console.error(err);

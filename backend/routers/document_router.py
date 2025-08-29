@@ -1,16 +1,39 @@
+import os
+import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import List
-from db import get_db
-from services.pdf_service import process_pdf
+from services.document_service import process_document
 from services.ai_service import suggest_feedback
 from services.case_service import bulk_create_cases
 from services.followup_service import create_followup
 from schemas.case import CaseCreate
 from schemas.followup import FollowupCreate
 from pydantic import BaseModel
+from typing import List, Optional
+from db import get_db
 
-router = APIRouter(prefix="/workflow", tags=["Complete Workflow"])
+router = APIRouter(prefix="/documents", tags=["Documents"])
+
+class CaseData(BaseModel):
+    room: Optional[str] = None
+    status: Optional[str] = None
+    importance: Optional[str] = None
+    type: Optional[str] = None
+    title: str
+    action: Optional[str] = None
+    guest: Optional[str] = None
+    created: Optional[str] = None
+    created_by: Optional[str] = None
+    modified: Optional[str] = None
+    modified_by: Optional[str] = None
+    source: Optional[str] = None
+    membership: Optional[str] = None
+    case_description: Optional[str] = None
+    in_out: Optional[str] = None
+
+class DocumentUploadResponse(BaseModel):
+    cases: List[CaseData]
+    message: str
 
 class WorkflowStep(BaseModel):
     step: str
@@ -24,7 +47,54 @@ class CompleteWorkflowResponse(BaseModel):
     followups_created: int
     final_message: str
 
-@router.post("/complete", response_model=CompleteWorkflowResponse)
+@router.post("/upload", response_model=DocumentUploadResponse)
+async def upload_document(file: UploadFile = File(...)):
+    """
+    Upload a PDF or DOCX file, process it, and return structured cases as JSON.
+    """
+    # Check file extension
+    if not file.filename.lower().endswith(('.pdf', '.docx')):
+        raise HTTPException(
+            status_code=400, 
+            detail="File must be a PDF (.pdf) or Word document (.docx)"
+        )
+    
+    try:
+        raw_cases = process_document(file)
+        
+        # Convert raw cases to API format
+        api_cases = []
+        for case in raw_cases:
+            api_case = CaseData(
+                room=case.get('room'),
+                status=case.get('status'),
+                importance=case.get('importance'),
+                type=case.get('type'),
+                title=case.get('title', 'Untitled Case'),
+                action=case.get('action'),
+                guest=case.get('guest'),
+                created=case.get('created'),
+                created_by=case.get('created_by'),
+                modified=case.get('modified'),
+                modified_by=case.get('modified_by'),
+                source=case.get('source'),
+                membership=case.get('membership'),
+                case_description=case.get('case_description'),
+                in_out=case.get('in_out')
+            )
+            api_cases.append(api_case)
+        
+        return DocumentUploadResponse(
+            cases=api_cases,
+            message=f"Successfully processed {len(api_cases)} cases from {file.filename}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error processing document: {str(e)}"
+        )
+
+@router.post("/workflow", response_model=CompleteWorkflowResponse)
 async def complete_workflow(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
@@ -43,7 +113,7 @@ async def complete_workflow(
             data={}
         ))
         
-        cases_data = process_pdf(file)
+        cases_data = process_document(file)
         
         # Handle case where no cases are found
         if not cases_data:
@@ -81,9 +151,6 @@ async def complete_workflow(
         # Step 3: Create Cases in Database
         case_objects = []
         for case_data in cases_data:
-            # Debug: print the case data
-            print(f"Creating case with data: {case_data}")
-            
             # Ensure title is never empty
             title = case_data.get("title") or case_data.get("case") or "Untitled Case"
             
@@ -98,8 +165,6 @@ async def complete_workflow(
                 owner_id=None  # Explicitly set to None for now
             )
             
-            # Debug: print the created case object
-            print(f"Created case object: {case_obj}")
             case_objects.append(case_obj)
         
         created_cases = bulk_create_cases(db, case_objects)
@@ -148,4 +213,12 @@ async def complete_workflow(
         raise HTTPException(
             status_code=500,
             detail=f"Workflow failed at step: {steps[-1].step}. Error: {str(e)}"
-        ) 
+        )
+
+# Legacy endpoint for backward compatibility
+@router.post("/pdf/upload", response_model=DocumentUploadResponse)
+async def upload_pdf_legacy(file: UploadFile = File(...)):
+    """
+    Legacy endpoint for PDF uploads - now redirects to document upload.
+    """
+    return await upload_document(file)

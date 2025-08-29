@@ -1,5 +1,5 @@
 // Environment configuration
-const BASE_URL = import.meta.env.VITE_API_URL || (window.location.origin + "/api");
+const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : (window.location.origin + "/api"));
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -35,12 +35,12 @@ const handleApiResponse = async (response) => {
   return response.json();
 };
 
-// PDF Processing
-export const uploadPDF = async (file) => {
+// Document Processing
+export const uploadDocument = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/pdf/upload`, {
+  const res = await fetch(`${BASE_URL}/documents/upload`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),
@@ -49,28 +49,15 @@ export const uploadPDF = async (file) => {
   });
   
   if (!res.ok) {
-    throw new Error(`PDF upload failed: ${res.statusText}`);
+    throw new Error(`Document upload failed: ${res.statusText}`);
   }
   
   return res.json();
 };
 
-// AI Feedback Generation
-export const generateAI = async (cases) => {
-  const res = await fetch(`${BASE_URL}/ai/feedback`, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify({ cases }),
-  });
-  
-  if (!res.ok) {
-    throw new Error(`AI feedback generation failed: ${res.statusText}`);
-  }
-  
-  return res.json();
+// Legacy function for backward compatibility
+export const uploadPDF = async (file) => {
+  return uploadDocument(file);
 };
 
 // Complete Workflow (PDF → AI → Cases → Followups)
@@ -78,7 +65,7 @@ export const completeWorkflow = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/workflow/complete`, {
+  const res = await fetch(`${BASE_URL}/documents/workflow`, {
     method: "POST",
     headers: {
       ...getAuthHeaders(),

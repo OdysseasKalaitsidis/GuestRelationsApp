@@ -9,6 +9,16 @@ class CaseCreate(BaseModel):
     title: str
     action: Optional[str] = None
     owner_id: Optional[int] = None
+    # New fields - temporarily commented out until migration is run
+    # guest: Optional[str] = None
+    # created: Optional[str] = None
+    # created_by: Optional[str] = None
+    # modified: Optional[str] = None
+    # modified_by: Optional[str] = None
+    # source: Optional[str] = None
+    # membership: Optional[str] = None
+    # case_description: Optional[str] = None
+    # in_out: Optional[str] = None
 
 class CaseUpdate(BaseModel):
     room: Optional[str] = None
@@ -18,6 +28,16 @@ class CaseUpdate(BaseModel):
     title: Optional[str] = None
     action: Optional[str] = None
     owner_id: Optional[int] = None
+    # New fields - temporarily commented out until migration is run
+    # guest: Optional[str] = None
+    # created: Optional[str] = None
+    # created_by: Optional[str] = None
+    # modified: Optional[str] = None
+    # modified_by: Optional[str] = None
+    # source: Optional[str] = None
+    # membership: Optional[str] = None
+    # case_description: Optional[str] = None
+    # in_out: Optional[str] = None
 
 class CaseResponse(CaseCreate):
     id: int

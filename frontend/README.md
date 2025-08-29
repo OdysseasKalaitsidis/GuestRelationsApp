@@ -1,164 +1,226 @@
 # Guest Relations Frontend
 
-A modern React application for managing guest relations cases, PDF uploads, and AI-powered followup tracking.
+A modern, responsive React frontend for the Guest Relations system, built with Vite and Tailwind CSS.
 
-## Features
+## Architecture Overview
 
-- **PDF Upload & Processing**: Upload PDFs and automatically extract case data
-- **AI Feedback Generation**: Get AI-powered suggestions for followup actions
-- **Case Management**: View and manage all cases with their details
-- **Followup Tracking**: Manage followup tasks with status updates and assignments
-- **Complete Workflow**: End-to-end processing from PDF to database
-- **Modern UI**: Clean, responsive interface built with Tailwind CSS
+The frontend follows a clean, component-based architecture:
 
-## Pages
+```
+frontend/
+├── src/
+│   ├── App.jsx                 # Main application component with routing
+│   ├── main.jsx                # Application entry point
+│   ├── index.css               # Global styles and Tailwind imports
+│   ├── components/             # Reusable UI components
+│   │   ├── Navigation.jsx      # Main navigation bar
+│   │   ├── AuthModal.jsx       # Authentication modal
+│   │   ├── CasesTable.jsx      # Cases data table
+│   │   ├── UploadModal.jsx     # Document upload workflow
+│   │   └── upload/             # Upload workflow components
+│   │       ├── UploadStep.jsx  # File upload step
+│   │       ├── EditStep.jsx    # Case editing step
+│   │       ├── ReviewStep.jsx  # Review step
+│   │       ├── ConfirmStep.jsx # Confirmation step
+│   │       ├── StepHeader.jsx  # Step header component
+│   │       ├── ProgressBar.jsx # Progress indicator
+│   │       └── Navigation.jsx  # Step navigation
+│   ├── pages/                  # Page components
+│   │   ├── CasesPage.jsx       # Cases management page
+│   │   ├── FollowupsPage.jsx   # Followups management page
+│   │   └── TasksPage.jsx       # Tasks management page
+│   └── services/               # API service layer
+│       └── api.js              # API client functions
+├── public/                     # Static assets
+├── package.json                # Dependencies and scripts
+├── vite.config.js             # Vite configuration
+├── tailwind.config.js         # Tailwind CSS configuration
+└── postcss.config.js          # PostCSS configuration
+```
 
-### 1. Upload Page (`/upload`)
-- Dedicated PDF upload interface
-- Complete workflow execution
-- Real-time progress tracking
-- Success summary with statistics
+## Core Features
 
-### 2. Cases Page (`/cases`)
-- View all cases with their details
-- Expandable rows showing associated followups
-- Refresh data from backend
-- Upload new PDFs via modal
+### 1. Document Processing Workflow
+- **Multi-step Upload**: Guided workflow for document processing
+- **File Validation**: Support for PDF and DOCX formats
+- **AI Integration**: Automated case extraction and feedback generation
+- **Case Management**: Edit and review extracted cases before creation
 
-### 3. Followups Page (`/followups`)
-- Manage all followup tasks
-- Edit followup details inline
-- Update status and assignments
-- Delete followups
+### 2. Case Management
+- **Data Table**: Comprehensive cases display with sorting and filtering
+- **CRUD Operations**: Create, read, update, and delete cases
+- **Bulk Operations**: Handle multiple cases efficiently
+- **User Assignment**: Assign cases to team members
+
+### 3. Followup Management
+- **Followup Tracking**: Monitor case followups and status
+- **AI Suggestions**: AI-powered followup recommendations
+- **Status Management**: Track followup progress and completion
+
+### 4. Task Management
+- **Task Creation**: Create and assign tasks to team members
+- **Priority Management**: Set task priorities and deadlines
+- **Progress Tracking**: Monitor task completion status
+
+### 5. Authentication & Security
+- **JWT Authentication**: Secure user authentication
+- **Role-based Access**: Admin and user role management
+- **Session Management**: Secure session handling
 
 ## Technology Stack
 
-- **React 18** - Modern React with hooks
-- **React Router** - Client-side routing
-- **Tailwind CSS** - Utility-first CSS framework
-- **Vite** - Fast build tool and dev server
+- **Framework**: React 18 with Hooks
+- **Build Tool**: Vite for fast development and building
+- **Styling**: Tailwind CSS for utility-first styling
+- **Routing**: React Router for client-side navigation
+- **State Management**: React Hooks for local state
+- **HTTP Client**: Fetch API for backend communication
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js 16+ 
-- npm or yarn
-- Backend API running on `http://localhost:8000`
+- npm or yarn package manager
 
 ### Installation
+```bash
+cd frontend
+npm install
+```
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+### Environment Setup
+Create a `.env` file with:
+```env
+VITE_API_URL=http://localhost:8000/api
+```
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+### Development
+```bash
+npm run dev
+```
 
-3. Open your browser to `http://localhost:5173`
+The application will be available at `http://localhost:5173`
 
-### Build for Production
-
+### Building for Production
 ```bash
 npm run build
 ```
 
+The built application will be in the `dist/` directory.
+
+## Component Architecture
+
+### Core Components
+
+#### Navigation
+- Main navigation bar with routing
+- User authentication status
+- Responsive mobile menu
+
+#### UploadModal
+- Multi-step document processing workflow
+- File upload and validation
+- AI-powered case extraction
+- Case editing and review
+- Bulk case creation
+
+#### Data Tables
+- Sortable and filterable data display
+- Pagination for large datasets
+- Responsive design for mobile devices
+
+### Page Components
+
+#### CasesPage
+- Display all cases in a data table
+- Case creation and editing
+- Bulk operations
+- Search and filtering
+
+#### FollowupsPage
+- Followup management interface
+- Status tracking and updates
+- AI suggestion integration
+
+#### TasksPage
+- Task creation and management
+- Priority and deadline handling
+- User assignment
+
 ## API Integration
 
-The frontend integrates with the backend API endpoints:
+The frontend communicates with the backend through the `api.js` service layer:
 
-- **PDF Upload**: `/pdf/upload`
-- **AI Feedback**: `/ai/feedback`
-- **Complete Workflow**: `/workflow/complete`
-- **Cases**: `/cases/*`
-- **Followups**: `/followups/*`
+- **Authentication**: Login, logout, user management
+- **Documents**: Upload, process, workflow automation
+- **Cases**: CRUD operations, bulk creation
+- **Followups**: Creation and management
+- **Tasks**: Task operations and assignment
 
-## Usage
+## State Management
 
-### 1. Upload a PDF
-1. Navigate to the Upload page
-2. Select a PDF file
-3. Click "Start Complete Workflow"
-4. Monitor the progress through each step
-5. View the final results and statistics
+The application uses React Hooks for state management:
 
-### 2. View Cases
-1. Go to the Cases page
-2. See all cases in a table format
-3. Click "Show Details" to expand and view followups
-4. Use the refresh button to get latest data
+- **Local State**: Component-level state with `useState`
+- **Effect Management**: Side effects with `useEffect`
+- **Context**: Authentication state sharing
+- **Props**: Component communication
 
-### 3. Manage Followups
-1. Navigate to the Followups page
-2. Edit followup details inline
-3. Update status and assignments
-4. Delete followups as needed
+## Styling & Design
 
-## File Structure
+### Tailwind CSS
+- Utility-first CSS framework
+- Responsive design system
+- Custom component styling
+- Dark/light theme support
 
-```
-src/
-├── components/          # Reusable UI components
-│   ├── CasesTable.jsx  # Cases display table
-│   └── UploadModal.jsx # PDF upload modal
-├── pages/              # Page components
-│   ├── CasesPage.jsx   # Cases management page
-│   ├── FollowupsPage.jsx # Followups management page
-│   └── UploadPage.jsx  # PDF upload page
-├── services/           # API service functions
-│   └── api.js         # All API calls
-├── App.jsx            # Main app component
-└── main.jsx           # App entry point
-```
+### Design Principles
+- **Clean Interface**: Minimal, focused design
+- **Responsive Layout**: Mobile-first approach
+- **Accessibility**: WCAG compliance
+- **Performance**: Optimized rendering and loading
 
-## Development
+## Development Guidelines
 
-### Adding New Features
-1. Create new components in `src/components/`
-2. Add new pages in `src/pages/`
-3. Update API functions in `src/services/api.js`
-4. Add routes in `src/App.jsx`
+### Code Quality
+- **ESLint**: Code linting and formatting
+- **Component Structure**: Consistent component organization
+- **Naming Conventions**: Clear, descriptive names
+- **Error Handling**: Comprehensive error boundaries
 
-### Styling
-- Uses Tailwind CSS utility classes
-- Custom components follow the existing design patterns
-- Responsive design for mobile and desktop
+### Performance
+- **Code Splitting**: Route-based code splitting
+- **Lazy Loading**: Component lazy loading
+- **Optimization**: Bundle size optimization
+- **Caching**: API response caching
 
-### State Management
-- Uses React hooks for local state
-- API calls are centralized in service functions
-- Error handling and loading states included
+### Testing
+- **Unit Tests**: Component testing
+- **Integration Tests**: API integration testing
+- **E2E Tests**: User workflow testing
 
-## Troubleshooting
+## Deployment
 
-### Common Issues
+### Railway Deployment
+The frontend is configured for Railway deployment:
+- Environment-based configuration
+- Build optimization
+- Static asset serving
 
-1. **API Connection Errors**
-   - Ensure backend is running on port 8000
-   - Check CORS settings in backend
-   - Verify API endpoints are correct
-
-2. **PDF Upload Issues**
-   - Ensure file is a valid PDF
-   - Check file size limits
-   - Verify backend PDF processing is working
-
-3. **Data Not Loading**
-   - Check browser console for errors
-   - Verify database connection
-   - Check API response format
+### Build Optimization
+- Tree shaking for unused code
+- Asset compression and optimization
+- CDN integration for static assets
 
 ## Contributing
 
-1. Follow the existing code structure
+1. Follow the existing component structure
 2. Use consistent naming conventions
-3. Include error handling
-4. Test with different data scenarios
+3. Add comprehensive tests
+4. Update documentation
 5. Ensure responsive design
+6. Test across different devices
 
 ## License
 
-This project is part of the Guest Relations Management System.
+This project is licensed under the MIT License.

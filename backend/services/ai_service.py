@@ -1,14 +1,106 @@
 # backend/services/ai_service.py
 
 import os
-from openai import OpenAI
+import openai
 from typing import List, Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def get_client():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("Missing OPENAI_API_KEY. Check your .env file.")
-    return OpenAI(api_key=api_key)
+    
+    # Set the API key for the older openai package
+    openai.api_key = api_key
+    return openai
+
+def parse_document_with_ai(text: str) -> List[Dict[str, Any]]:
+    """
+    Use OpenAI to parse document text and extract structured case data.
+    This is much more reliable than regex-based parsing.
+    """
+    client = get_client()
+    
+    # Create a comprehensive prompt for the AI
+    system_prompt = """You are an expert at parsing hotel guest relations reports. 
+    Extract all cases from the document and return them as a JSON array.
+    
+    Each case should have these fields:
+    - created: The creation date and time
+    - guest: Guest name
+    - status: Case status (e.g., CLOSED, OPEN)
+    - created_by: Staff member who created the case
+    - room: Room number
+    - importance: Importance level (e.g., LOW, MEDIUM, HIGH)
+    - modified: Last modification date and time
+    - modified_by: Staff member who last modified the case
+    - source: Source of the case (e.g., Open Greece, Membership)
+    - membership: Membership type
+    - type: Case type (e.g., NEGATIVE, POSITIVE, NEUTRAL)
+    - case_description: Description of the case
+    - action: Action taken or required
+    - in_out: Check-in/check-out dates
+    - title: A descriptive title for the case (use guest name if available)
+    
+    Return ONLY valid JSON, no other text. If a field is not present, use null."""
+    
+    user_prompt = f"""Please parse this guest relations report and extract all cases as JSON:
+
+{text}
+
+Return the cases as a JSON array with the exact field names specified above."""
+
+    try:
+        response = client.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.1,  # Low temperature for consistent parsing
+        )
+
+        # Parse the JSON response
+        import json
+        result = response.choices[0].message.content.strip()
+        
+        # Clean up the response - remove markdown code blocks if present
+        if result.startswith('```json'):
+            result = result[7:]  # Remove ```json
+        if result.startswith('```'):
+            result = result[3:]   # Remove ```
+        if result.endswith('```'):
+            result = result[:-3]  # Remove trailing ```
+        
+        result = result.strip()
+        
+        # Try to parse the response
+        try:
+            parsed_result = json.loads(result)
+            # Handle both array and object with cases key
+            if isinstance(parsed_result, list):
+                cases = parsed_result
+            elif isinstance(parsed_result, dict) and 'cases' in parsed_result:
+                cases = parsed_result['cases']
+            else:
+                cases = [parsed_result]  # Single case
+                
+            print(f"AI successfully parsed {len(cases)} cases")
+            return cases
+            
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse AI response as JSON: {e}")
+            print(f"Raw response: {result}")
+            # Fallback to regex parsing
+            return []
+            
+    except Exception as e:
+        print(f"AI parsing failed: {e}")
+        # Fallback to regex parsing
+        return []
 
 def suggest_feedback(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -31,7 +123,7 @@ def suggest_feedback(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         )
 
         try:
-            response = client.chat.completions.create(
+            response = client.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are an assistant for guest relations team. Provide clear, actionable follow-up suggestions."},

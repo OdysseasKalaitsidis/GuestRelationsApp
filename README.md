@@ -1,236 +1,276 @@
 # Guest Relations Management System
 
-A comprehensive web application for managing guest relations cases, PDF processing, and AI-powered email responses using RAG (Retrieval-Augmented Generation) technology.
+A comprehensive, production-ready system for managing guest relations cases, document processing, and AI-powered workflows. Built with FastAPI backend and React frontend.
 
-## Features
+## 🏗️ Architecture Overview
 
-- **Case Management**: Create, track, and manage guest relations cases
-- **PDF Processing**: Upload and process PDF documents with AI analysis
-- **AI Email Assistant**: Generate professional email responses using RAG technology
-- **Task Management**: Assign and track daily tasks for staff
-- **Follow-up System**: Manage follow-up actions and communications
-- **User Authentication**: Secure login system with role-based access
-- **Real-time Updates**: Live updates for case status and task assignments
+The system follows a clean, modular architecture with clear separation of concerns:
 
-## Technology Stack
-
-### Backend
-- **FastAPI**: Modern Python web framework
-- **SQLAlchemy**: ORM for database operations
-- **MySQL**: Primary database
-- **Alembic**: Database migrations
-- **OpenAI API**: AI-powered text generation
-- **JWT**: Authentication tokens
-- **Uvicorn**: ASGI server
-
-### Frontend
-- **React 19**: Modern React with hooks
-- **React Router**: Client-side routing
-- **Tailwind CSS**: Utility-first CSS framework
-- **Vite**: Fast build tool and dev server
-
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- MySQL 8.0+
-- OpenAI API key
-
-### Development Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd GR_Domes
-   ```
-
-2. **Backend Setup**
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-
-3. **Database Setup**
-   ```bash
-   # Create database
-   mysql -u root -p
-   CREATE DATABASE mydb;
-   
-   # Run migrations
-   alembic upgrade head
-   
-   # Seed initial data
-   python seed_users.py
-   ```
-
-4. **Environment Configuration**
-   ```bash
-   # Create .env file in backend directory
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-5. **Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-6. **Run the application**
-   ```bash
-   # Terminal 1 - Backend
-   cd backend
-   uvicorn main:app --reload
-   
-   # Terminal 2 - Frontend
-   cd frontend
-   npm run dev
-   ```
-
-## Production Deployment
-
-### Railway (Recommended for Cloud)
-
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/deploy)
-
-**Quick Deploy**:
-1. Click the Railway button above
-2. Connect your GitHub repository
-3. Add MySQL database service
-4. Set environment variables
-5. Deploy!
-
-See [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md) for detailed instructions.
-
-### Using Docker (Local/Server)
-
-1. **Build and run with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **Access the application**
-   - Frontend: http://localhost
-   - API: http://localhost/api
-   - API Docs: http://localhost/docs (development only)
-
-### Manual Production Setup
-
-1. **Backend Production**
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
-
-2. **Frontend Production**
-   ```bash
-   cd frontend
-   npm run build
-   # Serve the dist folder with a web server like nginx
-   ```
-
-## Environment Variables
-
-### Backend (.env)
-```env
-DATABASE_URL=mysql+pymysql://username:password@localhost:3306/database_name
-SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-OPENAI_API_KEY=your-openai-api-key-here
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
-ENVIRONMENT=production
+```
+GR_Domes/
+├── backend/                    # FastAPI backend API
+│   ├── main.py                # Application entry point
+│   ├── models.py               # Database models
+│   ├── db.py                   # Database connection
+│   ├── requirements.txt        # Python dependencies
+│   ├── routers/                # API route handlers (7 routers)
+│   ├── services/               # Business logic layer (10 services)
+│   ├── schemas/                # Pydantic data models
+│   └── alembic/                # Database migrations
+├── frontend/                   # React frontend application
+│   ├── src/
+│   │   ├── components/         # Reusable UI components
+│   │   ├── pages/              # Page components (3 pages)
+│   │   └── services/           # API service layer
+│   ├── package.json            # Node.js dependencies
+│   └── README.md               # Frontend documentation
+├── railway.json                # Railway deployment config
+└── README.md                   # This file
 ```
 
-### Frontend (.env)
+## 🚀 Core Features
+
+### Backend (FastAPI)
+- **Document Processing**: PDF/DOCX upload and AI-powered parsing
+- **Case Management**: Full CRUD operations with manual input and templates
+- **Workflow Automation**: Complete pipeline from document to database
+- **AI Integration**: Smart suggestions and document analysis
+- **Security**: JWT authentication, role-based access, data anonymization
+- **Database**: SQLAlchemy ORM with Alembic migrations
+
+### Frontend (React)
+- **Modern UI**: Clean, responsive interface with Tailwind CSS
+- **Document Workflow**: Multi-step upload and processing
+- **Case Management**: Comprehensive data tables and forms
+- **Real-time Updates**: Live data synchronization
+- **Mobile-First**: Responsive design for all devices
+
+## 🛠️ Technology Stack
+
+### Backend
+- **Framework**: FastAPI 0.104+
+- **Database**: SQLAlchemy 2.0+ with MySQL/PostgreSQL
+- **AI**: OpenAI integration for document analysis
+- **Authentication**: JWT with bcrypt
+- **Document Processing**: PyPDF2, python-docx, spaCy
+- **Deployment**: Railway-ready with environment config
+
+### Frontend
+- **Framework**: React 18 with Hooks
+- **Build Tool**: Vite for fast development
+- **Styling**: Tailwind CSS utility framework
+- **Routing**: React Router for navigation
+- **HTTP**: Fetch API with centralized service layer
+
+## 📋 Prerequisites
+
+- **Python 3.8+** for backend
+- **Node.js 16+** for frontend
+- **MySQL/PostgreSQL** database
+- **OpenAI API key** for AI features
+- **Railway account** for deployment (optional)
+
+## 🚀 Quick Start
+
+### 1. Backend Setup
+```bash
+cd backend
+pip install -r requirements.txt
+
+# Create .env file
+echo "DATABASE_URL=your_database_url
+OPENAI_API_KEY=your_openai_key
+SECRET_KEY=your_secret_key
+ENVIRONMENT=development" > .env
+
+# Setup database
+alembic upgrade head
+
+# Run development server
+python main.py
+```
+
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+
+# Create .env file
+echo "VITE_API_URL=http://localhost:8000/api" > .env
+
+# Start development server
+npm run dev
+```
+
+### 3. Access the System
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Frontend**: http://localhost:5173
+
+## 🔧 Configuration
+
+### Environment Variables
+
+#### Backend (.env)
+```env
+DATABASE_URL=mysql://user:pass@localhost/guest_relations
+OPENAI_API_KEY=your_openai_api_key
+SECRET_KEY=your_secret_key_here
+ENVIRONMENT=development
+```
+
+#### Frontend (.env)
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-## API Documentation
+### Database Configuration
+The system supports both MySQL and PostgreSQL. Update `backend/db.py` and `backend/alembic.ini` for your database choice.
 
-Once the backend is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+## 📚 API Documentation
 
-## Project Structure
+### Core Endpoints
 
+#### Authentication
+- `POST /api/auth/login` - User authentication
+- `POST /api/auth/register` - User registration
+
+#### Documents
+- `POST /api/documents/upload` - Upload and process documents
+- `POST /api/documents/workflow` - Complete workflow automation
+
+#### Cases
+- `GET /api/cases/` - List all cases
+- `POST /api/cases/` - Create single case
+- `POST /api/cases/bulk` - Create multiple cases
+- `POST /api/cases/manual` - Manual case creation
+- `POST /api/cases/template/{name}` - Case from template
+
+#### Followups & Tasks
+- `GET /api/followups/` - List followups
+- `GET /api/tasks/` - List tasks
+
+### Interactive API Docs
+Visit `/docs` when running the backend for interactive Swagger documentation.
+
+## 🏭 Production Deployment
+
+### Railway Deployment
+The system is pre-configured for Railway deployment:
+
+1. **Connect Repository**: Link your GitHub repository to Railway
+2. **Environment Variables**: Set production environment variables
+3. **Auto-Deploy**: Railway automatically builds and deploys on push
+
+### Environment Configuration
+```env
+ENVIRONMENT=production
+ALLOWED_ORIGINS=https://yourdomain.com
+RAILWAY_PUBLIC_DOMAIN=your-app.railway.app
 ```
-GR_Domes/
-├── backend/
-│   ├── alembic/           # Database migrations
-│   ├── routers/           # API route handlers
-│   ├── schemas/           # Pydantic models
-│   ├── services/          # Business logic
-│   ├── training_documents/ # RAG training data
-│   ├── uploads/           # File uploads
-│   ├── main.py           # FastAPI application
-│   ├── models.py         # SQLAlchemy models
-│   └── requirements.txt  # Python dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── pages/        # Page components
-│   │   ├── services/     # API client
-│   │   └── App.jsx       # Main app component
-│   ├── package.json      # Node dependencies
-│   └── vite.config.js    # Vite configuration
-├── docker-compose.yml    # Docker services
-├── Dockerfile           # Container configuration
-└── nginx.conf           # Nginx configuration
-```
 
-## Key Features
+## 🧪 Development
 
-### Email AI Assistant
-- Paste guest emails and get AI-generated responses
-- Uses RAG technology with training documents
-- Conversation-like interface with message history
-- Copy responses for use in actual emails
+### Code Quality
+- **Type Hints**: Full Python type annotations
+- **ESLint**: JavaScript/React code quality
+- **Documentation**: Comprehensive docstrings and READMEs
+- **Error Handling**: Consistent error responses and logging
 
-### Case Management
-- Create and track guest relations cases
-- Assign cases to staff members
-- Update case status and add notes
-- Generate AI feedback for case analysis
+### Testing Strategy
+- **Backend**: Unit tests for services, integration tests for APIs
+- **Frontend**: Component testing, API integration testing
+- **Database**: Migration testing and data validation
 
-### Task Management
-- Create daily tasks (Amenity List, Emails, Courtesy Calls)
-- Assign tasks to specific users
-- Track task completion status
-- Admin controls for task management
+### Contributing
+1. Follow existing code structure and patterns
+2. Add comprehensive tests for new features
+3. Update documentation for API changes
+4. Ensure responsive design for frontend changes
+5. Test across different devices and browsers
 
-### PDF Processing
-- Upload PDF documents for analysis
-- Extract text and generate AI insights
-- Create cases from PDF content
-- Automated workflow processing
+## 📊 System Architecture
 
-## Security Features
+### Data Flow
+1. **Document Upload** → PDF/DOCX processing
+2. **AI Analysis** → Case extraction and suggestions
+3. **Case Creation** → Database storage with followups
+4. **Task Assignment** → User assignment and tracking
+5. **Progress Monitoring** → Status updates and completion
 
-- JWT-based authentication
-- Role-based access control
-- CORS protection
-- Input validation
-- SQL injection prevention
-- XSS protection headers
+### Security Features
+- **JWT Authentication**: Secure token-based auth
+- **Role-based Access**: Admin and user permissions
+- **Data Anonymization**: GDPR-compliant data handling
+- **Input Validation**: Comprehensive request validation
+- **CORS Protection**: Production-ready CORS configuration
 
-## Contributing
+## 🔍 Monitoring & Logging
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### Backend Logging
+- Structured logging with configurable levels
+- Request/response logging middleware
+- Error tracking and exception handling
+- Health check endpoints
 
-## License
+### Frontend Monitoring
+- Error boundaries for React components
+- API error handling and user feedback
+- Performance monitoring and optimization
+- Responsive design validation
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 🚨 Troubleshooting
 
-## Support
+### Common Issues
 
-For support and questions, please contact the development team or create an issue in the repository.
+#### Backend
+- **Database Connection**: Check DATABASE_URL and credentials
+- **AI Processing**: Verify OPENAI_API_KEY is valid
+- **Port Conflicts**: Ensure port 8000 is available
+
+#### Frontend
+- **API Connection**: Verify backend is running and accessible
+- **Build Errors**: Check Node.js version and dependencies
+- **CORS Issues**: Ensure backend CORS settings match frontend URL
+
+### Debug Mode
+Set `ENVIRONMENT=development` to enable:
+- Interactive API documentation
+- Detailed error messages
+- Development-specific CORS settings
+- Hot reload for development
+
+## 📈 Performance & Scalability
+
+### Backend Optimization
+- **Async Processing**: FastAPI async/await for concurrent requests
+- **Database Optimization**: Efficient queries and indexing
+- **Caching**: Response caching for frequently accessed data
+- **Load Balancing**: Ready for horizontal scaling
+
+### Frontend Optimization
+- **Code Splitting**: Route-based code splitting
+- **Lazy Loading**: Component lazy loading
+- **Bundle Optimization**: Tree shaking and minification
+- **CDN Ready**: Static asset optimization
+
+## 🤝 Support & Community
+
+### Documentation
+- **Backend**: See `backend/README.md` for detailed API docs
+- **Frontend**: See `frontend/README.md` for component docs
+- **API**: Interactive docs at `/docs` endpoint
+
+### Getting Help
+1. Check the troubleshooting section above
+2. Review the detailed README files in each directory
+3. Examine the API documentation at `/docs`
+4. Check the code comments and docstrings
+
+## 📄 License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+---
+
+**Built with ❤️ for modern guest relations management**

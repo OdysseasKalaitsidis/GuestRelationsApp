@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import CasesPage from './pages/CasesPage';
 import FollowupsPage from './pages/FollowupsPage';
 import TasksPage from './pages/TasksPage';
-import EmailAIPage from './pages/EmailAIPage';
 import Navigation from './components/Navigation';
 import AuthModal from './components/AuthModal';
 import { isAuthenticated, getCurrentUser, logout } from './services/api';
@@ -76,7 +75,6 @@ function App() {
           <Route path="/cases" element={<CasesPage />} />
           <Route path="/followups" element={<FollowupsPage />} />
           <Route path="/tasks" element={<TasksPage user={user} />} />
-          <Route path="/email-ai" element={<EmailAIPage />} />
         </Routes>
       </div>
     </Router>
