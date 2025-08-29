@@ -17,6 +17,11 @@ export PIP_NO_CACHE_DIR=1
 # Install packages with specific flags to avoid compilation
 pip install --no-cache-dir --only-binary=all -r requirements.txt
 
+# Download required spaCy model
+echo "Downloading spaCy model..."
+python -m spacy download en_core_web_sm
+
 echo "Python environment setup complete!"
 echo "Python version: $(python --version)"
 echo "Pip version: $(pip --version)"
+echo "spaCy models: $(python -m spacy info)"

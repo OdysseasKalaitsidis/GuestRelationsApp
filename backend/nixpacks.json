@@ -6,14 +6,15 @@
       "version": "3.11",
       "entrypoint": "uvicorn main:app --host 0.0.0.0 --port $PORT",
       "install_command": "chmod +x deploy.sh && ./deploy.sh",
-      "packages": ["build-essential", "python3-dev", "libffi-dev", "libssl-dev", "gcc", "g++", "make", "pkg-config", "libblas-dev", "liblapack-dev", "python3-venv"],
+      "packages": ["build-essential", "python3-dev", "libffi-dev", "libssl-dev", "gcc", "g++", "make", "pkg-config", "libblas-dev", "liblapack-dev", "python3-venv", "curl"],
       "environment": {
         "PYTHONPATH": "/opt/venv/lib/python3.11/site-packages",
         "PATH": "/opt/venv/bin:$PATH",
         "PYTHONUNBUFFERED": "1",
         "PIP_NO_CACHE_DIR": "1",
         "PIP_PREFER_BINARY": "1",
-        "PYTHON_VERSION": "3.11.18"
+        "PYTHON_VERSION": "3.11.18",
+        "SPACY_DATA_PATH": "/opt/venv/lib/python3.11/site-packages"
       }
     },
     {
