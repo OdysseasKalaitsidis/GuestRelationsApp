@@ -9,6 +9,7 @@ from routers import (
     document_router, followup_router, case_router, 
     auth_route, user_router, task_router, anonymization_router
 )
+from test_router import router as test_router
 from logging_config import setup_logging
 
 # Load environment variables
@@ -29,6 +30,7 @@ app = FastAPI(
 )
 
 # Register routers
+app.include_router(test_router, prefix="/api", tags=["Test"])
 app.include_router(auth_route.router, prefix="/api", tags=["Authentication"])
 app.include_router(user_router.router, prefix="/api", tags=["Users"])
 app.include_router(task_router.router, prefix="/api", tags=["Tasks"])
@@ -50,17 +52,16 @@ if ENVIRONMENT == "development":
         "http://127.0.0.1:5174",   # alternative port
     ]
 else:
-    # Production CORS - restrict to specific domains
-    allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
-    origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+    # Production CORS - allow all origins for now (temporary fix)
+    origins = ["*"]
     
-    # Add Railway domain if not already included
-    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-    if railway_domain and f"https://{railway_domain}" not in origins:
-        origins.append(f"https://{railway_domain}")
-    
-    # Add Netlify domain for frontend
-    origins.append("https://guestreationadomes.netlify.app")
+    # Uncomment below for proper production CORS when database is working
+    # allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+    # origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+    # railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    # if railway_domain and f"https://{railway_domain}" not in origins:
+    #     origins.append(f"https://{railway_domain}")
+    # origins.append("https://guestreationadomes.netlify.app")
 
 app.add_middleware(
     CORSMiddleware,

@@ -25,3 +25,11 @@ echo "Python environment setup complete!"
 echo "Python version: $(python --version)"
 echo "Pip version: $(pip --version)"
 echo "spaCy models: $(python -m spacy info)"
+
+# Setup database if DATABASE_URL is available
+if [ -n "$DATABASE_URL" ]; then
+    echo "Setting up database..."
+    python setup_db.py
+else
+    echo "⚠️  DATABASE_URL not set, skipping database setup"
+fi
