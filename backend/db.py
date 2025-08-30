@@ -6,10 +6,13 @@ from urllib.parse import quote_plus
 
 load_dotenv()
 
-db_password = os.getenv("DB_PASSWORD")
-encoded_password = quote_plus(db_password)
-
-DATABASE_URL = f"mysql+pymysql://myuser:{encoded_password}@localhost:3306/mydb"
+# Use Railway's DATABASE_URL environment variable if available, otherwise fall back to local config
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    # Fallback to local development configuration
+    db_password = os.getenv("DB_PASSWORD", "")
+    encoded_password = quote_plus(db_password)
+    DATABASE_URL = f"mysql+pymysql://myuser:{encoded_password}@localhost:3306/mydb"
 
 engine = create_engine(
     DATABASE_URL, 
