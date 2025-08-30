@@ -58,6 +58,9 @@ else:
     railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
     if railway_domain and f"https://{railway_domain}" not in origins:
         origins.append(f"https://{railway_domain}")
+    
+    # Add Netlify domain for frontend
+    origins.append("https://guestreationadomes.netlify.app")
 
 app.add_middleware(
     CORSMiddleware,

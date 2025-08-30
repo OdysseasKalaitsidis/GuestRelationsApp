@@ -1,5 +1,5 @@
 // Environment configuration
-const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://guestrelationsapp-production.up.railway.app');
+const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://guestrelationsapp-production.up.railway.app/api');
 
 // Helper function to get auth token
 const getAuthToken = () => {
