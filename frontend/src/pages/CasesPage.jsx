@@ -40,6 +40,29 @@ const CasesPage = () => {
     setShowUploadModal(false);
   };
 
+  const handleClearAllData = async () => {
+    if (window.confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
+      try {
+        const response = await fetch('/api/documents/clear-all-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          alert('All data cleared successfully!');
+          loadCases(); // Refresh the cases list
+        } else {
+          throw new Error('Failed to clear data');
+        }
+      } catch (err) {
+        console.error('Failed to clear data:', err);
+        alert('Failed to clear data. Please try again.');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -78,13 +101,22 @@ const CasesPage = () => {
             View and manage all cases with their associated followups
           </p>
         </div>
-        <button
-          onClick={handleOpenUploadModal}
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
-        >
-          <span>📄</span>
-          <span>Start New Workflow</span>
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleOpenUploadModal}
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+          >
+            <span>📄</span>
+            <span>Start New Workflow</span>
+          </button>
+          <button
+            onClick={handleClearAllData}
+            className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
+          >
+            <span>🗑️</span>
+            <span>Clear All Data</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

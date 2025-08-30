@@ -89,9 +89,11 @@ def update_case(db: Session, case_id: int, case_update: CaseUpdate) -> Optional[
 
 # Retrieve cases with their followups
 def get_cases_with_followups(db: Session) -> List[Dict[str, Any]]:
-    """Get all cases with their associated followups"""
+    """Get all cases with their associated followups using eager loading"""
     try:
-        cases = db.query(Case).all()
+        # Use eager loading to fetch cases and followups in one query
+        from sqlalchemy.orm import joinedload
+        cases = db.query(Case).options(joinedload(Case.followups)).all()
         result = []
         
         for case in cases:

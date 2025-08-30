@@ -47,11 +47,16 @@ class CompleteWorkflowResponse(BaseModel):
     followups_created: int
     final_message: str
 
+import time
+
 @router.post("/upload", response_model=DocumentUploadResponse)
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Upload a PDF or DOCX file, process it, and return structured cases as JSON.
+    This endpoint now automatically clears existing data before processing the new document.
     """
+    start_time = time.time()
+    
     # Check file extension
     if not file.filename.lower().endswith(('.pdf', '.docx')):
         raise HTTPException(
@@ -60,6 +65,17 @@ async def upload_document(file: UploadFile = File(...)):
         )
     
     try:
+        # Step 0: Clear all previous data before processing new document
+        from services.daily_service import clear_all_data
+        
+        try:
+            # Clear data in background (non-blocking)
+            clear_all_data(db)
+        except Exception as clear_error:
+            print(f"Warning: Could not clear existing data: {clear_error}")
+            # Continue with upload even if clearing fails
+        
+        # Step 1: Process the document (optimized)
         raw_cases = process_document(file)
         
         # Convert raw cases to API format
@@ -84,9 +100,17 @@ async def upload_document(file: UploadFile = File(...)):
             )
             api_cases.append(api_case)
         
+        # If no cases found, provide helpful feedback
+        if not api_cases:
+            return DocumentUploadResponse(
+                cases=[],
+                message=f"No cases found in {file.filename}. The document may not contain case data in the expected format, or the parsing may have failed. Please check the document content and try again."
+            )
+        
+        processing_time = time.time() - start_time
         return DocumentUploadResponse(
             cases=api_cases,
-            message=f"Successfully processed {len(api_cases)} cases from {file.filename}"
+            message=f"Successfully processed {len(api_cases)} cases from {file.filename} in {processing_time:.2f}s"
         )
     except Exception as e:
         raise HTTPException(
@@ -97,7 +121,8 @@ async def upload_document(file: UploadFile = File(...)):
 @router.post("/workflow", response_model=CompleteWorkflowResponse)
 async def complete_workflow(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    create_cases: bool = True
 ):
     """
     Complete workflow: Upload PDF → Process → AI Feedback → Create Cases → Create Followups
@@ -105,6 +130,17 @@ async def complete_workflow(
     steps = []
     
     try:
+        # Step 0: Clear all previous data
+        from services.daily_service import clear_all_data
+        
+        clear_result = clear_all_data(db)
+        steps.append(WorkflowStep(
+            step="Data Clearance",
+            status="success",
+            message=clear_result["message"],
+            data=clear_result
+        ))
+        
         # Step 1: Process PDF
         steps.append(WorkflowStep(
             step="PDF Processing",
@@ -120,16 +156,16 @@ async def complete_workflow(
             steps.append(WorkflowStep(
                 step="PDF Parsing",
                 status="warning",
-                message="No cases found in PDF - document may not contain case data",
+                message="No cases found in document - document may not contain case data in expected format",
                 data={"cases_count": 0}
             ))
             
-            # Return early with no cases created
+            # Return early with no cases created but provide helpful message
             return CompleteWorkflowResponse(
                 steps=steps,
                 cases_created=0,
                 followups_created=0,
-                final_message="PDF processed successfully but no cases were found. Please check the document content."
+                final_message="Document processed successfully but no cases were found. This could be because: 1) The document doesn't contain case data in the expected format, 2) The parsing logic couldn't extract the data properly, 3) The document structure is different from what the system expects. Please check the document content and ensure it contains case information with fields like Guest, Room, Status, etc."
             )
         
         steps.append(WorkflowStep(
@@ -140,34 +176,77 @@ async def complete_workflow(
         ))
         
         # Step 2: Generate AI Feedback
-        ai_suggestions = suggest_feedback(cases_data)
-        steps.append(WorkflowStep(
-            step="AI Feedback",
-            status="success",
-            message=f"Generated AI suggestions for {len(ai_suggestions)} cases",
-            data={"suggestions_count": len(ai_suggestions)}
-        ))
-        
-        # Step 3: Create Cases in Database
-        case_objects = []
-        for case_data in cases_data:
-            # Ensure title is never empty
-            title = case_data.get("title") or case_data.get("case") or "Untitled Case"
+        try:
+            from services.ai_service import suggest_feedback, check_openai_available
             
-            # Map the data properly, handling potential field name mismatches
-            case_obj = CaseCreate(
-                room=case_data.get("room"),
-                status=case_data.get("status") or "pending",
-                importance=case_data.get("importance") or "medium",
-                type=case_data.get("type") or "other",
-                title=title,
-                action=case_data.get("action") or case_data.get("action_text"),
-                owner_id=None  # Explicitly set to None for now
-            )
-            
-            case_objects.append(case_obj)
+            # Check if OpenAI is available
+            is_available, message = check_openai_available()
+            if is_available:
+                ai_suggestions = suggest_feedback(cases_data)
+                steps.append(WorkflowStep(
+                    step="AI Feedback",
+                    status="success",
+                    message=f"Generated AI suggestions for {len(ai_suggestions)} cases",
+                    data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+                ))
+            else:
+                # Create default suggestions when AI is not available
+                ai_suggestions = [
+                    {
+                        "case_id": i,
+                        "suggestion_text": "Please review this case and determine appropriate follow-up action.",
+                        "confidence": 0.0,
+                        "case_data": case
+                    }
+                    for i, case in enumerate(cases_data)
+                ]
+                steps.append(WorkflowStep(
+                    step="AI Feedback",
+                    status="warning",
+                    message=f"AI suggestions not available: {message}. Using default suggestions.",
+                    data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+                ))
+        except Exception as e:
+            print(f"Error generating AI suggestions: {e}")
+            # Create default suggestions on error
+            ai_suggestions = [
+                {
+                    "case_id": i,
+                    "suggestion_text": "Please review this case and determine appropriate follow-up action.",
+                    "confidence": 0.0,
+                    "case_data": case
+                }
+                for i, case in enumerate(cases_data)
+            ]
+            steps.append(WorkflowStep(
+                step="AI Feedback",
+                status="warning",
+                message=f"AI suggestions failed: {str(e)}. Using default suggestions.",
+                data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+            ))
         
-        created_cases = bulk_create_cases(db, case_objects)
+        # Step 3: Create Cases in Database (only if create_cases is True)
+        created_cases = []
+        if create_cases:
+            case_objects = []
+            for case_data in cases_data:
+                # Ensure title is never empty
+                title = case_data.get("title") or case_data.get("case") or "Untitled Case"
+                
+                # Map the data properly, handling potential field name mismatches
+                case_obj = CaseCreate(
+                    room=case_data.get("room"),
+                    status=case_data.get("status") or "pending",
+                    importance=case_data.get("importance") or "medium",
+                    type=case_data.get("type") or "other",
+                    title=title,
+                    action=case_data.get("action") or case_data.get("action_text"),
+                    owner_id=None  # Explicitly set to None for now
+                )
+                
+                case_objects.append(case_obj)
+            
+            created_cases = bulk_create_cases(db, case_objects)
         steps.append(WorkflowStep(
             step="Case Creation",
             status="success",
@@ -175,17 +254,18 @@ async def complete_workflow(
             data={"cases_created": len(created_cases), "cases": cases_data}
         ))
         
-        # Step 4: Create Followups with AI Suggestions
+        # Step 4: Create Followups with AI Suggestions (only if create_cases is True)
         followups_created = 0
-        for i, case in enumerate(created_cases):
-            if i < len(ai_suggestions):
-                followup_data = FollowupCreate(
-                    case_id=case.id,
-                    suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available"),
-                    status="pending"
-                )
-                create_followup(db, followup_data)
-                followups_created += 1
+        if create_cases:
+            for i, case in enumerate(created_cases):
+                if i < len(ai_suggestions):
+                    followup_data = FollowupCreate(
+                        case_id=case.id,
+                        suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available"),
+                        status="pending"
+                    )
+                    create_followup(db, followup_data)
+                    followups_created += 1
         
         steps.append(WorkflowStep(
             step="Followup Creation",
@@ -213,6 +293,99 @@ async def complete_workflow(
         raise HTTPException(
             status_code=500,
             detail=f"Workflow failed at step: {steps[-1].step}. Error: {str(e)}"
+        )
+
+# Clear all data endpoint
+@router.post("/clear-all-data")
+async def clear_all_data_endpoint(db: Session = Depends(get_db)):
+    """
+    Clear all data from the database - cases, followups, and tasks
+    """
+    try:
+        from services.daily_service import clear_all_data
+        result = clear_all_data(db)
+        return {
+            "message": "All data cleared successfully",
+            "details": result
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error clearing data: {str(e)}"
+        )
+
+# Debug endpoint to test AI suggestions
+@router.post("/debug/test-ai-suggestions")
+async def test_ai_suggestions():
+    """
+    Debug endpoint to test AI suggestion generation
+    """
+    try:
+        from services.ai_service import suggest_feedback
+        
+        # Sample case data for testing
+        test_cases = [
+            {
+                "room": "101",
+                "status": "OPEN",
+                "importance": "HIGH",
+                "type": "NEGATIVE",
+                "title": "Noisy Neighbors Complaint",
+                "case_description": "Guest complained about noisy neighbors and requested room change",
+                "action": "Contacted front desk to arrange room change"
+            },
+            {
+                "room": "205",
+                "status": "PENDING",
+                "importance": "MEDIUM",
+                "type": "NEUTRAL",
+                "title": "Amenity Request",
+                "case_description": "Guest requested additional towels and toiletries",
+                "action": "Delivered requested items to room"
+            }
+        ]
+        
+        suggestions = suggest_feedback(test_cases)
+        
+        return {
+            "message": f"Successfully generated {len(suggestions)} AI suggestions",
+            "suggestions": suggestions
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error testing AI suggestions: {str(e)}"
+        )
+
+# Debug endpoint to help troubleshoot parsing issues
+@router.post("/debug/extract-text")
+async def debug_extract_text(file: UploadFile = File(...)):
+    """
+    Debug endpoint to extract and return raw text from document for troubleshooting
+    """
+    try:
+        from services.document_service import extract_text_from_pdf, extract_text_from_docx
+        
+        if file.filename.lower().endswith('.pdf'):
+            raw_text = extract_text_from_pdf(file)
+        elif file.filename.lower().endswith('.docx'):
+            raw_text = extract_text_from_docx(file)
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="File must be a PDF (.pdf) or Word document (.docx)"
+            )
+        
+        return {
+            "filename": file.filename,
+            "text_length": len(raw_text),
+            "text_preview": raw_text[:1000] + "..." if len(raw_text) > 1000 else raw_text,
+            "message": f"Successfully extracted {len(raw_text)} characters from {file.filename}"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error extracting text: {str(e)}"
         )
 
 # Legacy endpoint for backward compatibility

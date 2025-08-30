@@ -24,6 +24,11 @@ const ReviewStep = ({ pdfCases, onRemoveCase }) => {
                 <strong>Description:</strong> {caseItem.case_description}
               </div>
             )}
+            {caseItem.action && (
+              <div className="mt-2 text-sm text-gray-600">
+                <strong>Action:</strong> {caseItem.action}
+              </div>
+            )}
           </div>
           <button
             className="text-red-500 hover:underline ml-4 flex-shrink-0"

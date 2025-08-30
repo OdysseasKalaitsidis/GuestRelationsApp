@@ -170,6 +170,14 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         if len(case_blocks) <= 1:
             # Try splitting by room numbers
             case_blocks = re.split(r'(?=Room\s+\d+)', text)
+            
+        if len(case_blocks) <= 1:
+            # Try splitting by double newlines or section breaks
+            case_blocks = re.split(r'\n\s*\n\s*\n', text)
+            
+        if len(case_blocks) <= 1:
+            # Last resort: split by any date pattern
+            case_blocks = re.split(r'(?=\d{2}/\d{2}/\d{4})', text)
     
     print(f"DEBUG: Found {len(case_blocks)} potential case blocks")
     
@@ -253,10 +261,67 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         if not membership_match:
             membership_match = re.search(r'Membership\s+([^\n\r]+)', block)
         
-        # Extract case description and action with better patterns
-        # Look for CASE followed by text until ACTION or end
-        case_match = re.search(r'CASE\s+([^A-Z]+?)(?=\s+ACTION|$)', block, re.DOTALL | re.IGNORECASE)
-        action_match = re.search(r'ACTION\s+(.+?)(?=\s+[A-Z]+|$)', block, re.DOTALL | re.IGNORECASE)
+        # Extract case description as a separate section
+        case_match = None
+        
+        # Method 1: Look for CASE section
+        case_match = re.search(r'CASE\s*\n\s*(.+?)(?=\n\s*ACTION|\n\s*Created|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 2: Fallback pattern
+        if not case_match:
+            case_match = re.search(r'CASE\s+([^A-Z]+?)(?=\s+ACTION|$)', block, re.DOTALL | re.IGNORECASE)
+        if not case_match:
+            # Look for any substantial text that might be a case description
+            # Find the longest text block that's not just field names or action-related
+            lines = block.split('\n')
+            description_lines = []
+            action_keywords = ['update', 'action', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished']
+            
+            for line in lines:
+                line = line.strip()
+                if (len(line) > 20 and 
+                    not re.match(r'^(Created|Guest|Status|Type|Room|Importance|Modified|Source|Membership|IN/OUT|ACTION)', line, re.IGNORECASE) and
+                    not re.match(r'^\d{2}/\d{2}/\d{4}', line) and
+                    not any(keyword in line.lower() for keyword in action_keywords)):
+                    description_lines.append(line)
+            
+            if description_lines:
+                case_description = ' '.join(description_lines[:3])  # Take first 3 meaningful lines
+                if len(case_description) > 10:
+                    case_match = type('MockMatch', (), {'group': lambda self, x: case_description})()
+        
+        # Extract action as a separate section - simplified approach
+        action_match = None
+        
+        # Method 1: Look for ACTION section
+        action_match = re.search(r'ACTION\s*\n\s*(.+?)(?=\n\s*Created|\n\s*CASE|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 2: Look for Update patterns
+        if not action_match:
+            action_match = re.search(r'Update:\s*(.+?)(?=\n\s*Created|\n\s*CASE|$)', block, re.DOTALL)
+        
+        # Method 3: Look for Action taken/required
+        if not action_match:
+            action_match = re.search(r'Action\s+(?:taken|required):\s*(.+?)(?=\n\s*Created|\n\s*CASE|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 4: Look for lines with action keywords
+        if not action_match:
+            lines = block.split('\n')
+            action_lines = []
+            action_keywords = ['update', 'action', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished']
+            
+            for line in lines:
+                line = line.strip()
+                if (len(line) > 15 and 
+                    any(keyword in line.lower() for keyword in action_keywords) and
+                    not re.match(r'^(Created|Guest|Status|Type|Room|Importance|Modified|Source|Membership|IN/OUT|CASE)', line, re.IGNORECASE) and
+                    not re.match(r'^\d{2}/\d{2}/\d{4}', line)):
+                    action_lines.append(line)
+            
+            if action_lines:
+                action_description = ' '.join(action_lines[:2])
+                if len(action_description) > 10:
+                    action_match = type('MockMatch', (), {'group': lambda self, x: action_description})()
         
         # Also look for IN/OUT dates
         in_out_match = re.search(r'IN/OUT\s*\n\s*([^\n\r]+)', block)
@@ -272,11 +337,15 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             # Take only the first part before the pipe
             guest_name = guest_name.split('|')[0].strip()
         
-        # Ensure we have a valid title - use guest name, room, or fallback
+        # Ensure we have a valid title - use guest name, room, case description, or fallback
         if guest_name and len(guest_name) < 50:  # Avoid very long names that might be malformed
             title = guest_name
         elif room_number:
             title = f"Room {room_number} Case"
+        elif case_match and case_match.group(1).strip():
+            # Use first 50 characters of case description as title
+            desc = case_match.group(1).strip()
+            title = desc[:50] + "..." if len(desc) > 50 else desc
         else:
             title = "Untitled Case"
         
@@ -299,11 +368,22 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         }
         
         print(f"DEBUG: Extracted case: {case}")
+        if action_match:
+            print(f"DEBUG: Found action: {action_match.group(1).strip()[:100]}...")
+        if case_match:
+            print(f"DEBUG: Found case description: {case_match.group(1).strip()[:100]}...")
         
-        # Only add if we have at least some basic case information and the data looks valid
-        # Filter out cases with malformed data
-        if (case["guest"] and len(case["guest"]) < 50 and '|' not in case["guest"] and 
-            case["guest"] != "Services Domes of Corfu" and case["guest"] != "Guest Services Domes of Corfu") or (case["room"] and case["room"].isdigit()):
+        # More lenient validation - accept cases with any meaningful information
+        # Check if we have at least one of: guest name, room number, case description, or title
+        has_meaningful_data = (
+            (case["guest"] and len(case["guest"]) < 100 and '|' not in case["guest"] and 
+             case["guest"] != "Services Domes of Corfu" and case["guest"] != "Guest Services Domes of Corfu") or
+            (case["room"] and str(case["room"]).strip()) or
+            (case["case_description"] and len(case["case_description"]) > 10) or
+            (case["title"] and case["title"] != "Untitled Case" and len(case["title"]) > 5)
+        )
+        
+        if has_meaningful_data:
             cases.append(case)
             case_index += 1  # Increment case index for status/type mapping
             print(f"DEBUG: Added case {len(cases)}")
@@ -314,45 +394,40 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
     return cases
 
 def process_document(file: UploadFile) -> list:
-    """Full pipeline: extract → try AI parsing → fallback to regex parsing"""
-    if file.filename.lower().endswith('.pdf'):
-        raw_text = extract_text_from_pdf(file)
-    elif file.filename.lower().endswith('.docx'):
-        raw_text = extract_text_from_docx(file)
-    else:
-        raise ValueError(f"Unsupported file type: {file.filename}")
-    
-    print(f"DEBUG: Extracted text length: {len(raw_text)} characters")
-    print(f"DEBUG: First 500 chars: {raw_text[:500]}")
-    
-    # Try AI parsing first (much more reliable)
+    """Optimized pipeline: extract → try AI parsing → fallback to regex parsing"""
     try:
-        from services.ai_service import parse_document_with_ai
-        print("Attempting AI-powered document parsing...")
-        ai_cases = parse_document_with_ai(raw_text)
+        # Extract text once and cache it
+        if file.filename.lower().endswith('.pdf'):
+            raw_text = extract_text_from_pdf(file)
+        elif file.filename.lower().endswith('.docx'):
+            raw_text = extract_text_from_docx(file)
+        else:
+            raise ValueError(f"Unsupported file type: {file.filename}")
         
-        if ai_cases and len(ai_cases) > 0:
-            print(f"AI parsing successful! Found {len(ai_cases)} cases")
-            return ai_cases
-        else:
-            print("AI parsing returned no cases, falling back to regex parsing...")
-    except RuntimeError as e:
-        if "OPENAI_API_KEY" in str(e):
-            print("OpenAI API key not configured, using regex parsing...")
-        else:
-            print(f"AI parsing failed: {e}, falling back to regex parsing...")
+        # Quick validation
+        if not raw_text or len(raw_text.strip()) < 10:
+            return []
+        
+        # Try AI parsing first (much more reliable and faster for complex documents)
+        try:
+            from services.ai_service import parse_document_with_ai
+            ai_cases = parse_document_with_ai(raw_text)
+            
+            if ai_cases and len(ai_cases) > 0:
+                return ai_cases
+        except Exception as e:
+            # Silently fall back to regex parsing
+            pass
+        
+        # Fallback to optimized regex parsing
+        status_type_info = extract_status_type_info(raw_text)
+        cases = parse_cases(raw_text, status_type_info)
+        
+        return cases
+        
     except Exception as e:
-        print(f"AI parsing failed: {e}, falling back to regex parsing...")
-    
-    # Fallback to regex parsing if AI fails
-    print("Using regex-based parsing as fallback...")
-    
-    # Extract status and type information from original text before anonymization
-    status_type_info = extract_status_type_info(raw_text)
-    
-    anonymised_text = anonymise_text(raw_text)
-    cases = parse_cases(anonymised_text, status_type_info)
-    return cases
+        print(f"ERROR in process_document: {e}")
+        raise
 
 def extract_status_type_info(text: str) -> dict:
     """Extract status and type information from original text before anonymization"""

@@ -93,6 +93,17 @@ const EditStep = ({
           </div>
           
           <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
+            <textarea
+              value={caseItem.action || ''}
+              onChange={(e) => onCaseEdit(index, "action", e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder="Action taken or required"
+            />
+          </div>
+          
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">AI Feedback</label>
             <textarea
               value={caseItem.feedback}

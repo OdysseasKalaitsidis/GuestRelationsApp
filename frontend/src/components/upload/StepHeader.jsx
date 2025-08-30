@@ -13,7 +13,7 @@ const StepHeader = ({ currentStep }) => {
 
   const getStepDescription = () => {
     switch (currentStep) {
-      case 1: return "Upload a PDF or Word document to extract cases.";
+      case 1: return "Upload a PDF or Word document. ⚠️ This will clear all existing data before processing.";
       case 2: return "Inspect the extracted cases from the document.";
       case 3: return "Edit case details and assign responsible users.";
       case 4: return "Review and confirm all cases and followups.";

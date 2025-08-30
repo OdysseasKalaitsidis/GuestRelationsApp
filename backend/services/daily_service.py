@@ -3,6 +3,36 @@ from models import Case, Followup, Task
 from typing import List
 from datetime import date, datetime
 
+def clear_all_data(db: Session) -> dict:
+    """Clear all data from the database - cases, followups, and tasks"""
+    try:
+        # Use raw SQL for faster bulk deletion
+        # This bypasses ORM overhead and foreign key checks during deletion
+        from sqlalchemy import text
+        
+        db.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        
+        # Bulk delete all tables at once
+        followups_deleted = db.execute(text("DELETE FROM followups")).rowcount
+        tasks_deleted = db.execute(text("DELETE FROM tasks")).rowcount
+        cases_deleted = db.execute(text("DELETE FROM cases")).rowcount
+        
+        # Re-enable foreign key checks
+        db.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        
+        # Single commit for all operations
+        db.commit()
+        
+        return {
+            "cases_deleted": cases_deleted,
+            "followups_deleted": followups_deleted,
+            "tasks_deleted": tasks_deleted,
+            "message": f"Cleared {cases_deleted} cases, {followups_deleted} followups, and {tasks_deleted} tasks"
+        }
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error clearing data: {str(e)}")
+
 def reset_daily_cases(db: Session) -> dict:
     """Reset cases for a new day - archive current cases and create fresh ones"""
     today = date.today().strftime("%Y-%m-%d")

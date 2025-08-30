@@ -7,7 +7,7 @@ const getAuthToken = () => {
 };
 
 // Helper function to get auth headers
-const getAuthHeaders = () => {
+export const getAuthHeaders = () => {
   const token = getAuthToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };

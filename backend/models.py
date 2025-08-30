@@ -35,16 +35,16 @@ class Case(Base):
     action = Column(Text)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Made nullable
     
-    # New fields - temporarily commented out until migration is run
-    # guest = Column(String(255))
-    # created = Column(String(100))
-    # created_by = Column(String(255))
-    # modified = Column(String(100))
-    # modified_by = Column(String(255))
-    # source = Column(String(255))
-    # membership = Column(String(255))
-    # case_description = Column(Text)
-    # in_out = Column(String(255))
+    # New fields for AI parsing
+    guest = Column(String(255))
+    created = Column(String(100))
+    created_by = Column(String(255))
+    modified = Column(String(100))
+    modified_by = Column(String(255))
+    source = Column(String(255))
+    membership = Column(String(255))
+    case_description = Column(Text)
+    in_out = Column(String(255))
 
     owner = relationship("User", back_populates="cases")
     followups = relationship("Followup", back_populates="case")

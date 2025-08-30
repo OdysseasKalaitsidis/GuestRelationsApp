@@ -19,6 +19,11 @@ const ConfirmStep = ({ aiFeedback, assignedUsers, availableUsers }) => {
           <div className="mt-2">
             <strong>Feedback:</strong> {caseItem.feedback}
           </div>
+          {caseItem.action && (
+            <div className="mt-2">
+              <strong>Action:</strong> {caseItem.action}
+            </div>
+          )}
         </div>
       ))}
     </div>

@@ -6,6 +6,7 @@ import {
   fetchUsers,
   uploadDocument,
   completeWorkflow,
+  getAuthHeaders,
 } from "../services/api";
 import UploadStep from "./upload/UploadStep";
 import ReviewStep from "./upload/ReviewStep";
@@ -66,18 +67,41 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       setError("Please select a document file first");
       return;
     }
+    
     setIsLoading(true);
     setError(null);
 
     try {
-      const extracted = await uploadPDF(pdfFile);
-      if (!extracted.cases || extracted.cases.length === 0) {
+      // Use workflow endpoint to get processed cases without creating them yet
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+      formData.append("create_cases", "false");
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/documents/workflow`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Workflow failed: ${response.statusText}`);
+      }
+      
+      const workflowResult = await response.json();
+      
+      // Extract cases from workflow result
+      const pdfParsingStep = workflowResult.steps.find(step => step.step === "PDF Parsing");
+      const extractedCases = pdfParsingStep?.data?.cases || [];
+      
+      if (!extractedCases || extractedCases.length === 0) {
         setError("No cases found in document. Check your document.");
         setIsLoading(false);
         return;
       }
 
-      setPdfCases(extracted.cases);
+      setPdfCases(extractedCases);
       setCurrentStep(2);
     } catch (err) {
       console.error(err);
@@ -96,13 +120,16 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       const workflowResult = await completeWorkflow(pdfFile);
       
       // Extract cases and feedback from workflow result
-      const feedbackCases = workflowResult.cases_created > 0 ? 
-        workflowResult.steps.find(step => step.step === "AI Feedback")?.data?.suggestions || [] : [];
+      const aiFeedbackStep = workflowResult.steps.find(step => step.step === "AI Feedback");
+      const feedbackCases = aiFeedbackStep?.data?.suggestions || [];
+      
+      console.log("AI Feedback step:", aiFeedbackStep);
+      console.log("Feedback cases:", feedbackCases);
       
       // Map feedback to cases
       const casesWithFeedback = pdfCases.map((c, i) => ({
         ...c,
-        feedback: feedbackCases[i]?.suggestion_text || "No feedback generated",
+        feedback: feedbackCases[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
       }));
       
       setAiFeedback(casesWithFeedback);
