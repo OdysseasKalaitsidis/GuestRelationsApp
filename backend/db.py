@@ -2,32 +2,37 @@ from dotenv import load_dotenv
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from urllib.parse import quote_plus
 
 load_dotenv()
 
+# Prefer MYSQL_URL (Railway), fallback to DATABASE_URL (local)
 raw_mysql_url = os.getenv("MYSQL_URL")
+database_url = None
 
 if raw_mysql_url:
-    DATABASE_URL = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
+    database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
 else:
-    DATABASE_URL = os.getenv("DATABASE_URL")  # fallback if you define it manually
+    database_url = os.getenv("DATABASE_URL")
 
-print("DATABASE_URL is:", DATABASE_URL)  # Debug
+if not database_url:
+    raise RuntimeError("No database URL found. Set MYSQL_URL or DATABASE_URL in your environment.")
+
+print("Using DATABASE_URL:", database_url)
 
 engine = create_engine(
-    DATABASE_URL, 
-    echo=False,  # Disable SQL logging for better performance
-    pool_pre_ping=True,  # Verify connections before use
-    pool_recycle=3600,  # Recycle connections every hour
-    pool_size=10,  # Connection pool size
-    max_overflow=20  # Maximum overflow connections
+    database_url,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_size=10,
+    max_overflow=20,
 )
+
 SessionLocal = sessionmaker(
-    autocommit=False, 
-    autoflush=False, 
+    autocommit=False,
+    autoflush=False,
     bind=engine,
-    expire_on_commit=False  # Prevent expired object issues
+    expire_on_commit=False,
 )
 Base = declarative_base()
 
