@@ -9,7 +9,7 @@ if not raw_mysql_url:
 
 # Convert to SQLAlchemy format
 database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
-print("Using DATABASE_URL:", database_url)
+print("Using Railway MySQL URL:", database_url)
 
 # Create engine
 engine = create_engine(database_url, echo=False)
@@ -18,6 +18,6 @@ engine = create_engine(database_url, echo=False)
 try:
     with engine.connect() as conn:
         result = conn.execute("SELECT 1")
-        print("✅ Connection successful! Test query returned:", result.fetchone())
+        print("✅ Railway MySQL connection successful! Test query returned:", result.fetchone())
 except Exception as e:
-    print("❌ Connection failed:", e)
+    print("❌ Railway MySQL connection failed:", e)

@@ -42,16 +42,16 @@ async def startup_event():
         
         # Convert to SQLAlchemy format
         database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
-        logger.info(f"Testing database connection with: {database_url}")
+        logger.info(f"Testing database connection with Railway MySQL...")
         
         # Create engine and test connection
         engine = create_engine(database_url, echo=False)
         with engine.connect() as conn:
             result = conn.execute("SELECT 1")
-            logger.info(f"✅ Database connection successful! Test query returned: {result.fetchone()}")
+            logger.info(f"✅ Railway MySQL connection successful! Test query returned: {result.fetchone()}")
             
     except Exception as e:
-        logger.error(f"❌ Database connection failed: {e}")
+        logger.error(f"❌ Railway MySQL connection failed: {e}")
         # Don't raise the exception - let the app start but log the error
         # This allows the app to start even if DB is temporarily unavailable
 
