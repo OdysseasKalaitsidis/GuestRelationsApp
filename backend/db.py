@@ -6,16 +6,14 @@ from urllib.parse import quote_plus
 
 load_dotenv()
 
-# Use Railway's DATABASE_URL environment variable if available, otherwise fall back to local config
-DATABASE_URL = os.getenv("DATABASE_URL")
-print("DATABASE_URL is:", DATABASE_URL)  # Debug logging
+raw_mysql_url = os.getenv("MYSQL_URL")
 
-if not DATABASE_URL:
-    # Fallback to local development configuration
-    db_password = os.getenv("DB_PASSWORD", "")
-    encoded_password = quote_plus(db_password)
-    DATABASE_URL = f"mysql+pymysql://myuser:{encoded_password}@localhost:3306/mydb"
-    print("Using fallback DATABASE_URL:", DATABASE_URL)  # Debug logging
+if raw_mysql_url:
+    DATABASE_URL = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL")  # fallback if you define it manually
+
+print("DATABASE_URL is:", DATABASE_URL)  # Debug
 
 engine = create_engine(
     DATABASE_URL, 
