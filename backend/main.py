@@ -5,6 +5,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 from routers import (
     document_router, followup_router, case_router, 
     auth_route, user_router, task_router, anonymization_router
@@ -28,6 +29,31 @@ app = FastAPI(
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     redoc_url="/redoc" if ENVIRONMENT == "development" else None
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Test database connection on startup"""
+    try:
+        # Get the database URL from environment
+        raw_mysql_url = os.getenv("MYSQL_URL")
+        if not raw_mysql_url:
+            logger.warning("MYSQL_URL not found in environment - skipping database connection test")
+            return
+        
+        # Convert to SQLAlchemy format
+        database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
+        logger.info(f"Testing database connection with: {database_url}")
+        
+        # Create engine and test connection
+        engine = create_engine(database_url, echo=False)
+        with engine.connect() as conn:
+            result = conn.execute("SELECT 1")
+            logger.info(f"✅ Database connection successful! Test query returned: {result.fetchone()}")
+            
+    except Exception as e:
+        logger.error(f"❌ Database connection failed: {e}")
+        # Don't raise the exception - let the app start but log the error
+        # This allows the app to start even if DB is temporarily unavailable
 
 # Register routers
 app.include_router(test_router, prefix="/api", tags=["Test"])

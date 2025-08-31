@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
 Database setup script for Railway deployment
