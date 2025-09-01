@@ -14,7 +14,10 @@ def get_database_url():
     mysql_url = os.environ.get("MYSQL_URL")
 
     if mysql_url:
-        # Use MYSQL_URL directly with Railway-specific parameters
+        # Ensure SQLAlchemy uses pymysql driver
+        if not mysql_url.startswith("mysql+pymysql://"):
+            mysql_url = mysql_url.replace("mysql://", "mysql+pymysql://", 1)
+            logger.info("Converted mysql:// to mysql+pymysql:// for SQLAlchemy compatibility")
         return mysql_url
     else:
         # Fallback to separate variables
