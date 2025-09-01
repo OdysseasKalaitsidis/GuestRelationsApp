@@ -7,6 +7,11 @@ from schemas.user import UserCreate, UserResponse, UserLogin
 from services.security import create_access_token, decode_token
 from services.user_service import authenticate_user, create_user, get_user_by_username
 from typing import List
+import logging
+
+router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -14,15 +19,27 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 @router.post("/auth/login", response_model=dict)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Login endpoint"""
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
+    try:
+        user = authenticate_user(db, form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        token = create_access_token({"sub": user.username, "is_admin": user.is_admin, "user_id": user.id})
+        return {"access_token": token, "token_type": "bearer", "user": UserResponse.from_orm(user)}
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        if "Database not configured" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database service unavailable. Please try again later."
+            )
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
         )
-    token = create_access_token({"sub": user.username, "is_admin": user.is_admin, "user_id": user.id})
-    return {"access_token": token, "token_type": "bearer", "user": UserResponse.from_orm(user)}
 
 @router.post("/auth/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):

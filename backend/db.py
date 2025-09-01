@@ -12,20 +12,17 @@ SessionLocal = None
 def get_database_url():
     """Get database URL from environment variables"""
     # Get MySQL environment variables with defaults
-    MYSQLUSER = os.getenv('MYSQLUSER')
-    MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
-    MYSQLHOST = os.getenv('MYSQLHOST')
-    MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-    MYSQLDATABASE = os.getenv('MYSQLDATABASE')
+    DB_USER = os.getenv('MYSQLUSER')
+    DB_PASSWORD = os.getenv('MYSQLPASSWORD')
+    DB_HOST = os.getenv('MYSQLHOST')
+    DB_PORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
+    DB_NAME = os.getenv('MYSQLDATABASE')
     
     # Check if all required environment variables are set
-    if not all([MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE]):
+    if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):
         return None
     
-    return (
-        f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
-        f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
-    )
+    return f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 def initialize_database():
     """Initialize database connection if environment variables are available"""
@@ -33,7 +30,7 @@ def initialize_database():
     
     database_url = get_database_url()
     if database_url:
-        engine = create_engine(database_url, echo=False)
+        engine = create_engine(database_url, echo=True)
         SessionLocal = sessionmaker(bind=engine)
         return True
     return False
