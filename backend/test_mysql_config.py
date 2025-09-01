@@ -16,11 +16,11 @@ def test_mysql_config():
         'MYSQLUSER': os.getenv('MYSQLUSER'),
         'MYSQLPASSWORD': os.getenv('MYSQLPASSWORD'),
         'MYSQLHOST': os.getenv('MYSQLHOST'),
-        'MYSQLPORT': os.getenv('MYSQLPORT'),
+        'MYSQLPORT': os.getenv('MYSQLPORT', '3306'),  # Default to 3306 if not set
         'MYSQLDATABASE': os.getenv('MYSQLDATABASE')
     }
     
-    missing_vars = [var for var, value in required_vars.items() if not value]
+    missing_vars = [var for var, value in required_vars.items() if not value and var != 'MYSQLPORT']
     
     if missing_vars:
         print(f"❌ Missing environment variables: {', '.join(missing_vars)}")
@@ -29,7 +29,7 @@ def test_mysql_config():
     # Construct DATABASE_URL
     DATABASE_URL = (
         f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-        f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+        f"@{os.getenv('MYSQLHOST')}:{required_vars['MYSQLPORT']}/{os.getenv('MYSQLDATABASE')}"
     )
     
     print(f"✅ All MySQL environment variables found!")

@@ -13,8 +13,15 @@ def main():
     
     print("Setting up database...")
     
+    # Get MySQL environment variables with defaults
+    MYSQLUSER = os.getenv('MYSQLUSER')
+    MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
+    MYSQLHOST = os.getenv('MYSQLHOST')
+    MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
+    MYSQLDATABASE = os.getenv('MYSQLDATABASE')
+    
     # Check if all required MySQL environment variables are set
-    required_vars = ['MYSQLUSER', 'MYSQLPASSWORD', 'MYSQLHOST', 'MYSQLPORT', 'MYSQLDATABASE']
+    required_vars = ['MYSQLUSER', 'MYSQLPASSWORD', 'MYSQLHOST', 'MYSQLDATABASE']
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
     if missing_vars:
@@ -24,8 +31,8 @@ def main():
     
     # Construct DATABASE_URL from individual variables
     DATABASE_URL = (
-        f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-        f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+        f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
+        f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
     )
     
     print(f"✅ MySQL environment variables found: {DATABASE_URL[:20]}...")

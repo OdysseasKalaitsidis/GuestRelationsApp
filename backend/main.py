@@ -34,17 +34,23 @@ app = FastAPI(
 async def startup_event():
     """Test database connection on startup"""
     try:
-        # Get the database URL from environment
-        database_url = (
-            f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-            f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
-        )
+        # Get MySQL environment variables with defaults
+        MYSQLUSER = os.getenv('MYSQLUSER')
+        MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
+        MYSQLHOST = os.getenv('MYSQLHOST')
+        MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
+        MYSQLDATABASE = os.getenv('MYSQLDATABASE')
         
         # Check if all required environment variables are set
-        if not all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
-                   os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+        if not all([MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE]):
             logger.warning("MySQL environment variables not found - skipping database connection test")
             return
+        
+        # Construct DATABASE_URL
+        database_url = (
+            f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
+            f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
+        )
         
         logger.info(f"Testing database connection with MySQL...")
         

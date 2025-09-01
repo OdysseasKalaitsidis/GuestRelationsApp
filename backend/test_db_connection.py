@@ -2,16 +2,22 @@
 import os
 from sqlalchemy import create_engine
 
-# Get the database URL from environment
-DATABASE_URL = (
-    f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-    f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
-)
+# Get MySQL environment variables with defaults
+MYSQLUSER = os.getenv('MYSQLUSER')
+MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
+MYSQLHOST = os.getenv('MYSQLHOST')
+MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
+MYSQLDATABASE = os.getenv('MYSQLDATABASE')
 
 # Check if all required environment variables are set
-if not all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
-           os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
-    raise RuntimeError("MySQL environment variables not found!")
+if not all([MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE]):
+    raise RuntimeError("Missing required MySQL environment variables: MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE")
+
+# Construct DATABASE_URL
+DATABASE_URL = (
+    f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
+    f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
+)
 
 print("Using MySQL URL:", DATABASE_URL)
 

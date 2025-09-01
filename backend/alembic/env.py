@@ -50,10 +50,11 @@ def run_migrations_offline() -> None:
     """
     # Construct DATABASE_URL from MySQL environment variables if available
     if all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
-            os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+            os.getenv('MYSQLHOST'), os.getenv('MYSQLDATABASE')]):
+        MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
         url = (
             f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-            f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+            f"@{os.getenv('MYSQLHOST')}:{MYSQLPORT}/{os.getenv('MYSQLDATABASE')}"
         )
     else:
         # Fallback to DATABASE_URL environment variable or config
@@ -79,10 +80,11 @@ def run_migrations_online() -> None:
     """
     # Construct DATABASE_URL from MySQL environment variables if available
     if all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
-            os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+            os.getenv('MYSQLHOST'), os.getenv('MYSQLDATABASE')]):
+        MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
         database_url = (
             f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-            f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+            f"@{os.getenv('MYSQLHOST')}:{MYSQLPORT}/{os.getenv('MYSQLDATABASE')}"
         )
         # Override the config with the constructed URL
         config.set_main_option("sqlalchemy.url", database_url)
