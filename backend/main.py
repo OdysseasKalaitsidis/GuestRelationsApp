@@ -5,92 +5,43 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from routers import (
-    document_router, followup_router, case_router, 
-    auth_route, user_router, task_router, anonymization_router
-)
-from test_router import router as test_router
 from logging_config import setup_logging
+from routers import auth_route, user_router, task_router, document_router, followup_router, case_router, anonymization_router
+from test_router import router as test_router
+from db import initialize_database, get_engine
 
 # Load environment variables
 load_dotenv()
 
-# Setup logging
+# Logging
 logger = setup_logging()
 
-# Read environment variables
-DB_HOST = os.environ.get("MYSQLHOST", "").strip()
-DB_PORT = os.environ.get("MYSQLPORT", 3306)
-DB_USER = os.environ.get("MYSQLUSER", "").strip()
-DB_PASSWORD = os.environ.get("MYSQLPASSWORD", "").strip()
-DB_NAME = os.environ.get("DB_NAME", "").strip()
+# Environment variables
 SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "production")
 
-# Get environment
-ENVIRONMENT = os.getenv("ENVIRONMENT", "production")  # Default to production for Railway
-
+# FastAPI app
 app = FastAPI(
     title="Guest Relations API",
-    description="A comprehensive API for managing guest relations cases, document processing (PDF/DOCX), and AI-powered followups",
+    description="Guest relations API with document processing and AI-powered followups",
     version="1.0.0",
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     redoc_url="/redoc" if ENVIRONMENT == "development" else None
 )
 
-@app.on_event("startup")
-async def startup_event():
-    """Test database connection on startup"""
-    try:
-        from db import initialize_database
-        
-        # Try to initialize database connection
-        if initialize_database():
-            logger.info("✅ Database connection initialized successfully")
-            
-            # Test the connection
-            from db import get_engine
-            engine = get_engine()
-            with engine.connect() as conn:
-                result = conn.execute("SELECT 1")
-                logger.info(f"✅ MySQL connection test successful! Test query returned: {result.fetchone()}")
-        else:
-            logger.warning("⚠️ MySQL environment variables not found - database features will be unavailable")
-            
-    except Exception as e:
-        logger.error(f"❌ Database initialization failed: {e}")
-        # Don't raise the exception - let the app start but log the error
-        # This allows the app to start even if DB is temporarily unavailable
-
-# Register routers
-app.include_router(test_router, prefix="/api", tags=["Test"])
-app.include_router(auth_route.router, prefix="/api", tags=["Authentication"])
-app.include_router(user_router.router, prefix="/api", tags=["Users"])
-app.include_router(task_router.router, prefix="/api", tags=["Tasks"])
-app.include_router(document_router.router, prefix="/api", tags=["Document Processing"])
-app.include_router(followup_router.router, prefix="/api", tags=["Followups"])
-app.include_router(case_router.router, prefix="/api", tags=["Cases"])
-app.include_router(anonymization_router.router, prefix="/api", tags=["Anonymization"])
-
-# Mount static files (built frontend)
-if os.path.exists("static"):
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-# CORS Configuration
+# CORS origins
 origins = [
-    "https://guestreationadomes.netlify.app",  # frontend
-    "http://localhost:5173",                   # local dev
+    "https://guestreationadomes.netlify.app",
+    "http://localhost:5173"
 ]
-
-# Add any additional origins from environment variable
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 for origin in allowed_origins:
     origin = origin.strip()
     if origin and origin not in origins:
         origins.append(origin)
 
-# Add Railway domain if available
+# Add Railway public domain if available
 railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 if railway_domain and f"https://{railway_domain}" not in origins:
     origins.append(f"https://{railway_domain}")
@@ -103,78 +54,80 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Log CORS configuration
 logger.info(f"CORS origins configured: {origins}")
 
-# Add trusted host middleware for production
+# Trusted host middleware
 if ENVIRONMENT == "production":
-    allowed_hosts = ["*"]  # Railway handles this
-    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    allowed_hosts = ["*"]
     if railway_domain:
         allowed_hosts.append(railway_domain)
         allowed_hosts.append(f"*.{railway_domain}")
-    
-    app.add_middleware(
-        TrustedHostMiddleware, 
-        allowed_hosts=allowed_hosts
-    )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    try:
+        if initialize_database():
+            logger.info("✅ Database connection initialized successfully")
+            engine = get_engine()
+            with engine.connect() as conn:
+                result = conn.execute("SELECT 1")
+                logger.info(f"✅ MySQL test query returned: {result.fetchone()}")
+        else:
+            logger.warning("⚠️ MySQL environment variables not found - database features unavailable")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+
+# Routers
+app.include_router(test_router, prefix="/api", tags=["Test"])
+app.include_router(auth_route.router, prefix="/api", tags=["Authentication"])
+app.include_router(user_router.router, prefix="/api", tags=["Users"])
+app.include_router(task_router.router, prefix="/api", tags=["Tasks"])
+app.include_router(document_router.router, prefix="/api", tags=["Document Processing"])
+app.include_router(followup_router.router, prefix="/api", tags=["Followups"])
+app.include_router(case_router.router, prefix="/api", tags=["Cases"])
+app.include_router(anonymization_router.router, prefix="/api", tags=["Anonymization"])
+
+# Static files
+if os.path.exists("static"):
+    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+# Root and health endpoints
 @app.get("/")
 def root():
     return {"message": "Guest Relations API running", "environment": ENVIRONMENT}
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "environment": ENVIRONMENT}
-
 @app.get("/api/health")
 def api_health_check():
-    """Health check endpoint for API"""
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "environment": ENVIRONMENT,
-        "database": "unavailable" if ENVIRONMENT == "production" and not os.getenv("MYSQLUSER") else "available"
+        "database": "available" if os.environ.get("MYSQLUSER") else "unavailable"
     }
 
 @app.post("/api/auth/login-fallback")
 def login_fallback():
-    """Fallback login endpoint when database is unavailable"""
     return {
         "access_token": "fallback_token",
         "token_type": "bearer",
-        "user": {
-            "id": 1,
-            "username": "admin",
-            "email": "admin@example.com",
-            "is_admin": True
-        },
+        "user": {"id": 1, "username": "admin", "email": "admin@example.com", "is_admin": True},
         "message": "Database unavailable - using fallback authentication"
     }
-
-@app.options("/{full_path:path}")
-async def options_handler(full_path: str):
-    """Handle CORS preflight requests"""
-    return {"message": "CORS preflight handled"}
 
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global exception: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info(f"Request: {request.method} {request.url}")
-    
-    # Log CORS-related headers
     origin = request.headers.get("origin")
     if origin:
         logger.info(f"CORS request from origin: {origin}")
-    
     response = await call_next(request)
     logger.info(f"Response: {response.status_code}")
     return response
@@ -182,10 +135,8 @@ async def log_requests(request: Request, call_next):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-    "main:app", 
-    host="0.0.0.0", 
-    port=int(os.getenv("PORT", 8000)),
-    reload=ENVIRONMENT == "development"
-)
-
-    
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8080)),
+        reload=ENVIRONMENT == "development"
+    )

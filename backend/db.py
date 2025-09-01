@@ -3,17 +3,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from urllib.parse import urlparse
 
-# Create Base first (always needed)
 Base = declarative_base()
-
-# Initialize engine and SessionLocal as None
 engine = None
 SessionLocal = None
 
 def get_database_url():
-    """Get database URL from environment variables"""
+    """Build the SQLAlchemy database URL"""
     mysql_url = os.environ.get("MYSQL_URL")
-    
+
     if mysql_url:
         # Parse MYSQL_URL if available
         parsed = urlparse(mysql_url)
@@ -21,42 +18,37 @@ def get_database_url():
         password = parsed.password
         host = parsed.hostname
         port = parsed.port
-        database = parsed.path.lstrip("/")  # VERY IMPORTANT - removes leading slash
-        connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+        database = parsed.path.lstrip("/")  # Remove leading slash
     else:
-        # Fallback using separate Railway variables with proper stripping
+        # Fallback to separate variables
         user = os.environ.get("MYSQLUSER", "").strip()
         password = os.environ.get("MYSQLPASSWORD", "").strip()
         host = os.environ.get("MYSQLHOST", "").strip()
         port = os.environ.get("MYSQLPORT", "3306")
         database = os.environ.get("DB_NAME", "").strip()
-        
-        # Check if all required environment variables are set
+
+        # If any required variable is missing, return None
         if not all([user, password, host, database]):
             return None
-            
-        connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
-    
-    return connection_url
+
+    return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 
 def initialize_database():
-    """Initialize database connection if environment variables are available"""
+    """Initialize engine and session"""
     global engine, SessionLocal
-    
-    database_url = get_database_url()
-    if database_url:
-        engine = create_engine(database_url, echo=True)
+    db_url = get_database_url()
+    if db_url:
+        engine = create_engine(db_url, echo=True)
         SessionLocal = sessionmaker(bind=engine)
         return True
     return False
 
 def get_db():
-    """Get database session"""
+    """Provide a database session"""
     if SessionLocal is None:
-        # Try to initialize if not already done
         if not initialize_database():
-            raise RuntimeError("Database not configured. Please check environment variables.")
-    
+            raise RuntimeError("Database not configured. Check environment variables.")
+
     db = SessionLocal()
     try:
         yield db
@@ -64,9 +56,8 @@ def get_db():
         db.close()
 
 def get_engine():
-    """Get database engine"""
+    """Get SQLAlchemy engine"""
     if engine is None:
-        # Try to initialize if not already done
         if not initialize_database():
-            raise RuntimeError("Database not configured. Please check environment variables.")
+            raise RuntimeError("Database not configured. Check environment variables.")
     return engine
