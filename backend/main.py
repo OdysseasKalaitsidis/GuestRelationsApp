@@ -20,13 +20,13 @@ load_dotenv()
 logger = setup_logging()
 
 # Read environment variables
-DB_HOST = os.environ.get("MYSQLHOST")
+DB_HOST = os.environ.get("MYSQLHOST", "").strip()
 DB_PORT = os.environ.get("MYSQLPORT", 3306)
-DB_USER = os.environ.get("MYSQLUSER")
-DB_PASSWORD = os.environ.get("MYSQLPASSWORD")
-DB_NAME = os.environ.get("DB_NAME")
-SECRET_KEY = os.environ.get("SECRET_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+DB_USER = os.environ.get("MYSQLUSER", "").strip()
+DB_PASSWORD = os.environ.get("MYSQLPASSWORD", "").strip()
+DB_NAME = os.environ.get("DB_NAME", "").strip()
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 
 # Get environment
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")  # Default to production for Railway

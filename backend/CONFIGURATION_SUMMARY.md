@@ -32,12 +32,12 @@ if mysql_url:
     database = parsed.path.lstrip("/")  # Removes leading slash
     connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 else:
-    # Fallback using separate Railway variables
-    user = os.environ.get("MYSQLUSER")
-    password = os.environ.get("MYSQLPASSWORD")
-    host = os.environ.get("MYSQLHOST")
-    port = os.environ.get("MYSQLPORT", 3306)
-    database = os.environ.get("DB_NAME")
+    # Fallback using separate Railway variables with proper stripping
+    user = os.environ.get("MYSQLUSER", "").strip()
+    password = os.environ.get("MYSQLPASSWORD", "").strip()
+    host = os.environ.get("MYSQLHOST", "").strip()
+    port = os.environ.get("MYSQLPORT", "3306")
+    database = os.environ.get("DB_NAME", "").strip()
     connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 
 engine = create_engine(connection_url, echo=True)
