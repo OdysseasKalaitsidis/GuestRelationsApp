@@ -1,6 +1,19 @@
 // Environment configuration
 const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://guestrelationsapp-production.up.railway.app/api');
 
+// Internal Railway domain for service-to-service communication
+const INTERNAL_API_URL = 'https://guestrelationsapp.railway.internal/api';
+
+// Helper function to get the appropriate API URL
+const getApiUrl = (useInternal = false) => {
+  if (useInternal) {
+    return INTERNAL_API_URL;
+  }
+  return BASE_URL;
+};
+
+// Helper function to get auth token
+
 // Helper function to get auth token
 const getAuthToken = () => {
   return localStorage.getItem('authToken');
@@ -459,6 +472,35 @@ export const chatWithEmailAssistant = async (emailContent) => {
   
   if (!res.ok) {
     throw new Error(`Failed to get AI response: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+// Internal API functions for service-to-service communication
+export const internalHealthCheck = async () => {
+  const res = await fetch(`${INTERNAL_API_URL}/health`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Internal health check failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+export const internalDatabaseStatus = async () => {
+  const res = await fetch(`${INTERNAL_API_URL}/test/db`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Internal database status check failed: ${res.statusText}`);
   }
   
   return res.json();

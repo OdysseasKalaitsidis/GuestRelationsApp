@@ -26,6 +26,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      '/internal-api': {
+        target: 'https://guestrelationsapp.railway.internal',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
   preview: {
