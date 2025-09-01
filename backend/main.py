@@ -5,6 +5,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from sqlalchemy import text
 from logging_config import setup_logging
 from routers import auth_route, user_router, task_router, document_router, followup_router, case_router, anonymization_router
 from test_router import router as test_router
@@ -72,8 +73,8 @@ async def startup_event():
             logger.info("✅ Database connection initialized successfully")
             engine = get_engine()
             with engine.connect() as conn:
-                result = conn.execute("SELECT 1")
-                logger.info(f"✅ MySQL test query returned: {result.fetchone()}")
+                result = conn.execute(text("SELECT 1"))
+                logger.info(f"✅ MySQL test query returned: {result.scalar()}")
         else:
             logger.warning("⚠️ MySQL environment variables not found - database features unavailable")
     except Exception as e:
