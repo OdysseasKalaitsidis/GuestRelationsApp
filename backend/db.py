@@ -2,14 +2,12 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-raw_mysql_url = os.getenv("MYSQL_URL")
-if not raw_mysql_url:
-    raise RuntimeError("No MYSQL_URL set in environment!")
+DATABASE_URL = (
+    f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
+    f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+)
 
-# Convert to SQLAlchemy format
-database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
-
-engine = create_engine(database_url, echo=False)
+engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 

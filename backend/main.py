@@ -35,23 +35,27 @@ async def startup_event():
     """Test database connection on startup"""
     try:
         # Get the database URL from environment
-        raw_mysql_url = os.getenv("MYSQL_URL")
-        if not raw_mysql_url:
-            logger.warning("MYSQL_URL not found in environment - skipping database connection test")
+        database_url = (
+            f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
+            f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+        )
+        
+        # Check if all required environment variables are set
+        if not all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
+                   os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+            logger.warning("MySQL environment variables not found - skipping database connection test")
             return
         
-        # Convert to SQLAlchemy format
-        database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
-        logger.info(f"Testing database connection with Railway MySQL...")
+        logger.info(f"Testing database connection with MySQL...")
         
         # Create engine and test connection
         engine = create_engine(database_url, echo=False)
         with engine.connect() as conn:
             result = conn.execute("SELECT 1")
-            logger.info(f"✅ Railway MySQL connection successful! Test query returned: {result.fetchone()}")
+            logger.info(f"✅ MySQL connection successful! Test query returned: {result.fetchone()}")
             
     except Exception as e:
-        logger.error(f"❌ Railway MySQL connection failed: {e}")
+        logger.error(f"❌ MySQL connection failed: {e}")
         # Don't raise the exception - let the app start but log the error
         # This allows the app to start even if DB is temporarily unavailable
 

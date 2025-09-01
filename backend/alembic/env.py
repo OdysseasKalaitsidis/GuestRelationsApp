@@ -48,8 +48,17 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # Use DATABASE_URL environment variable if available, otherwise use config
-    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    # Construct DATABASE_URL from MySQL environment variables if available
+    if all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
+            os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+        url = (
+            f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
+            f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+        )
+    else:
+        # Fallback to DATABASE_URL environment variable or config
+        url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -68,11 +77,21 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Use DATABASE_URL environment variable if available
-    database_url = os.getenv("DATABASE_URL")
-    if database_url:
-        # Override the config with the environment variable
+    # Construct DATABASE_URL from MySQL environment variables if available
+    if all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
+            os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+        database_url = (
+            f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
+            f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+        )
+        # Override the config with the constructed URL
         config.set_main_option("sqlalchemy.url", database_url)
+    else:
+        # Fallback to DATABASE_URL environment variable
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            # Override the config with the environment variable
+            config.set_main_option("sqlalchemy.url", database_url)
     
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),

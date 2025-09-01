@@ -105,7 +105,14 @@ pip install -r requirements.txt
 ### Environment Setup
 Create a `.env` file with:
 ```env
-DATABASE_URL=your_database_url
+# MySQL Database Configuration
+MYSQLUSER=your_mysql_username
+MYSQLPASSWORD=your_mysql_password
+MYSQLHOST=your_mysql_host
+MYSQLPORT=3306
+MYSQLDATABASE=your_mysql_database
+
+# Application Configuration
 OPENAI_API_KEY=your_openai_key
 SECRET_KEY=your_secret_key
 ENVIRONMENT=development

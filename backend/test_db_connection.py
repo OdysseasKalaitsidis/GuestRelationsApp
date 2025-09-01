@@ -3,21 +3,25 @@ import os
 from sqlalchemy import create_engine
 
 # Get the database URL from environment
-raw_mysql_url = os.getenv("MYSQL_URL")
-if not raw_mysql_url:
-    raise RuntimeError("MYSQL_URL not found in environment!")
+DATABASE_URL = (
+    f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
+    f"@{os.getenv('MYSQLHOST')}:{os.getenv('MYSQLPORT')}/{os.getenv('MYSQLDATABASE')}"
+)
 
-# Convert to SQLAlchemy format
-database_url = raw_mysql_url.replace("mysql://", "mysql+pymysql://")
-print("Using Railway MySQL URL:", database_url)
+# Check if all required environment variables are set
+if not all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
+           os.getenv('MYSQLHOST'), os.getenv('MYSQLPORT'), os.getenv('MYSQLDATABASE')]):
+    raise RuntimeError("MySQL environment variables not found!")
+
+print("Using MySQL URL:", DATABASE_URL)
 
 # Create engine
-engine = create_engine(database_url, echo=False)
+engine = create_engine(DATABASE_URL, echo=False)
 
 # Test connection
 try:
     with engine.connect() as conn:
         result = conn.execute("SELECT 1")
-        print("✅ Railway MySQL connection successful! Test query returned:", result.fetchone())
+        print("✅ MySQL connection successful! Test query returned:", result.fetchone())
 except Exception as e:
-    print("❌ Railway MySQL connection failed:", e)
+    print("❌ MySQL connection failed:", e)
