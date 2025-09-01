@@ -5,10 +5,11 @@
 Your FastAPI backend is now properly configured to read MySQL environment variables:
 
 ### Required Environment Variables:
-- `MYSQLUSER` - Database username
-- `MYSQLPASSWORD` - Database password  
-- `MYSQLHOST` - Database host
-- `DB_NAME` - Database name
+- `MYSQL_URL` - MySQL connection URL (Railway primary method)
+- `MYSQLUSER` - Database username (fallback)
+- `MYSQLPASSWORD` - Database password (fallback)
+- `MYSQLHOST` - Database host (fallback)
+- `DB_NAME` - Database name (fallback)
 - `SECRET_KEY` - Secret key for JWT tokens
 
 ### Optional Environment Variables:
@@ -20,16 +21,26 @@ Your FastAPI backend is now properly configured to read MySQL environment variab
 ### Database Connection:
 ```python
 # Updated in backend/db.py and backend/main.py
-DB_USER = os.environ.get("MYSQLUSER")
-DB_PASSWORD = os.environ.get("MYSQLPASSWORD")
-DB_HOST = os.environ.get("MYSQLHOST")
-DB_NAME = os.environ.get("DB_NAME")
-DB_PORT = os.environ.get("MYSQLPORT", 3306)
-SECRET_KEY = os.environ.get("SECRET_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+# Primary method: Parse MYSQL_URL
+mysql_url = os.environ.get("MYSQL_URL")
+if mysql_url:
+    parsed = urlparse(mysql_url)
+    user = parsed.username
+    password = parsed.password
+    host = parsed.hostname
+    port = parsed.port
+    database = parsed.path.lstrip("/")  # Removes leading slash
+    connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+else:
+    # Fallback using separate Railway variables
+    user = os.environ.get("MYSQLUSER")
+    password = os.environ.get("MYSQLPASSWORD")
+    host = os.environ.get("MYSQLHOST")
+    port = os.environ.get("MYSQLPORT", 3306)
+    database = os.environ.get("DB_NAME")
+    connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
 
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(connection_url, echo=True)
 ```
 
 ## ✅ CORS Configuration

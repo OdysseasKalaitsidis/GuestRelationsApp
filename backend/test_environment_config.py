@@ -15,10 +15,11 @@ def test_environment_variables():
     
     # Required environment variables
     required_vars = {
-        'MYSQLUSER': 'Database username',
-        'MYSQLPASSWORD': 'Database password', 
-        'MYSQLHOST': 'Database host',
-        'DB_NAME': 'Database name'
+        'MYSQL_URL': 'MySQL connection URL (Railway)',
+        'MYSQLUSER': 'Database username (fallback)',
+        'MYSQLPASSWORD': 'Database password (fallback)', 
+        'MYSQLHOST': 'Database host (fallback)',
+        'DB_NAME': 'Database name (fallback)'
     }
     
     # Optional environment variables
@@ -32,15 +33,24 @@ def test_environment_variables():
     
     print("\n📋 Required Environment Variables:")
     all_required_set = True
-    for var, description in required_vars.items():
-        value = os.getenv(var)
-        if value:
-            # Mask password for security
-            display_value = "***" if var == 'MYSQLPASSWORD' else value
-            print(f"  ✅ {var}: {display_value} ({description})")
-        else:
-            print(f"  ❌ {var}: NOT SET ({description})")
-            all_required_set = False
+    
+    # Check if MYSQL_URL is set (primary method)
+    mysql_url = os.getenv('MYSQL_URL')
+    if mysql_url:
+        print(f"  ✅ MYSQL_URL: *** (MySQL connection URL - primary method)")
+    else:
+        # Check fallback variables
+        for var, description in required_vars.items():
+            if var == 'MYSQL_URL':
+                continue  # Skip MYSQL_URL since we already checked it
+            value = os.getenv(var)
+            if value:
+                # Mask password for security
+                display_value = "***" if var == 'MYSQLPASSWORD' else value
+                print(f"  ✅ {var}: {display_value} ({description})")
+            else:
+                print(f"  ❌ {var}: NOT SET ({description})")
+                all_required_set = False
     
     print("\n📋 Optional Environment Variables:")
     for var, description in optional_vars.items():

@@ -1,6 +1,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from urllib.parse import urlparse
 
 # Create Base first (always needed)
 Base = declarative_base()
@@ -11,18 +12,32 @@ SessionLocal = None
 
 def get_database_url():
     """Get database URL from environment variables"""
-    # Get MySQL environment variables with defaults
-    DB_USER = os.getenv('MYSQLUSER')
-    DB_PASSWORD = os.getenv('MYSQLPASSWORD')
-    DB_HOST = os.getenv('MYSQLHOST')
-    DB_PORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-    DB_NAME = os.getenv('DB_NAME')
+    mysql_url = os.environ.get("MYSQL_URL")
     
-    # Check if all required environment variables are set
-    if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):
-        return None
+    if mysql_url:
+        # Parse MYSQL_URL if available
+        parsed = urlparse(mysql_url)
+        user = parsed.username
+        password = parsed.password
+        host = parsed.hostname
+        port = parsed.port
+        database = parsed.path.lstrip("/")  # VERY IMPORTANT - removes leading slash
+        connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+    else:
+        # Fallback using separate Railway variables
+        user = os.environ.get("MYSQLUSER")
+        password = os.environ.get("MYSQLPASSWORD")
+        host = os.environ.get("MYSQLHOST")
+        port = os.environ.get("MYSQLPORT", "3306")
+        database = os.environ.get("DB_NAME")
+        
+        # Check if all required environment variables are set
+        if not all([user, password, host, database]):
+            return None
+            
+        connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
     
-    return f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    return connection_url
 
 def initialize_database():
     """Initialize database connection if environment variables are available"""
