@@ -18,14 +18,16 @@ def test_environment_variables():
         'MYSQLUSER': 'Database username',
         'MYSQLPASSWORD': 'Database password', 
         'MYSQLHOST': 'Database host',
-        'MYSQLDATABASE': 'Database name'
+        'DB_NAME': 'Database name'
     }
     
     # Optional environment variables
     optional_vars = {
         'MYSQLPORT': 'Database port (default: 3306)',
         'ENVIRONMENT': 'Environment (development/production)',
-        'ALLOWED_ORIGINS': 'Additional CORS origins'
+        'ALLOWED_ORIGINS': 'Additional CORS origins',
+        'SECRET_KEY': 'Secret key for JWT tokens',
+        'OPENAI_API_KEY': 'OpenAI API key (optional)'
     }
     
     print("\n📋 Required Environment Variables:")

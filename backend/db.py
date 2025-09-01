@@ -16,7 +16,7 @@ def get_database_url():
     DB_PASSWORD = os.getenv('MYSQLPASSWORD')
     DB_HOST = os.getenv('MYSQLHOST')
     DB_PORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-    DB_NAME = os.getenv('MYSQLDATABASE')
+    DB_NAME = os.getenv('DB_NAME')
     
     # Check if all required environment variables are set
     if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_NAME]):

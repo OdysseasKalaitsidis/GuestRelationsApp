@@ -19,6 +19,15 @@ load_dotenv()
 # Setup logging
 logger = setup_logging()
 
+# Read environment variables
+DB_HOST = os.environ.get("MYSQLHOST")
+DB_PORT = os.environ.get("MYSQLPORT", 3306)
+DB_USER = os.environ.get("MYSQLUSER")
+DB_PASSWORD = os.environ.get("MYSQLPASSWORD")
+DB_NAME = os.environ.get("DB_NAME")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
 # Get environment
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")  # Default to production for Railway
 
@@ -69,21 +78,10 @@ if os.path.exists("static"):
     app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # CORS Configuration
-# Always include production origins for Railway deployment
 origins = [
-    "https://guestreationadomes.netlify.app",  # Netlify frontend
-    "https://guestrelationsapp-production.up.railway.app",  # Railway domain
+    "https://guestreationadomes.netlify.app",  # frontend
+    "http://localhost:5173",                   # local dev
 ]
-
-if ENVIRONMENT == "development":
-    # Add development origins
-    dev_origins = [
-        "http://localhost:5173",   # Vite default
-        "http://localhost:5174",   # Vite alternative port
-        "http://127.0.0.1:5173",   # sometimes needed
-        "http://127.0.0.1:5174",   # alternative port
-    ]
-    origins.extend(dev_origins)
 
 # Add any additional origins from environment variable
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
@@ -101,7 +99,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

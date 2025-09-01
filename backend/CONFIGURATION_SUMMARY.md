@@ -8,21 +8,25 @@ Your FastAPI backend is now properly configured to read MySQL environment variab
 - `MYSQLUSER` - Database username
 - `MYSQLPASSWORD` - Database password  
 - `MYSQLHOST` - Database host
-- `MYSQLDATABASE` - Database name
+- `DB_NAME` - Database name
+- `SECRET_KEY` - Secret key for JWT tokens
 
 ### Optional Environment Variables:
 - `MYSQLPORT` - Database port (defaults to 3306)
 - `ENVIRONMENT` - Environment (development/production)
 - `ALLOWED_ORIGINS` - Additional CORS origins
+- `OPENAI_API_KEY` - OpenAI API key (optional)
 
 ### Database Connection:
 ```python
-# Updated in backend/db.py
+# Updated in backend/db.py and backend/main.py
 DB_USER = os.environ.get("MYSQLUSER")
 DB_PASSWORD = os.environ.get("MYSQLPASSWORD")
 DB_HOST = os.environ.get("MYSQLHOST")
-DB_NAME = os.environ.get("MYSQLDATABASE")
+DB_NAME = os.environ.get("DB_NAME")
 DB_PORT = os.environ.get("MYSQLPORT", 3306)
+SECRET_KEY = os.environ.get("SECRET_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = create_engine(DATABASE_URL, echo=True)
