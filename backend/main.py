@@ -77,16 +77,23 @@ if ENVIRONMENT == "development":
         "http://127.0.0.1:5174",   # alternative port
     ]
 else:
-    # Production CORS - allow all origins for now (temporary fix)
-    origins = ["*"]
+    # Production CORS - allow specific origins
+    origins = [
+        "https://guestreationadomes.netlify.app",  # Netlify frontend
+        "https://guestrelationsapp-production.up.railway.app",  # Railway domain
+    ]
     
-    # Uncomment below for proper production CORS when database is working
-    # allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
-    # origins = [origin.strip() for origin in allowed_origins if origin.strip()]
-    # railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-    # if railway_domain and f"https://{railway_domain}" not in origins:
-    #     origins.append(f"https://{railway_domain}")
-    # origins.append("https://guestreationadomes.netlify.app")
+    # Add any additional origins from environment variable
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+    for origin in allowed_origins:
+        origin = origin.strip()
+        if origin and origin not in origins:
+            origins.append(origin)
+    
+    # Add Railway domain if available
+    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    if railway_domain and f"https://{railway_domain}" not in origins:
+        origins.append(f"https://{railway_domain}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -95,6 +102,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Log CORS configuration
+logger.info(f"CORS origins configured: {origins}")
 
 # Add trusted host middleware for production
 if ENVIRONMENT == "production":
@@ -117,6 +127,11 @@ def root():
 def health_check():
     return {"status": "healthy", "environment": ENVIRONMENT}
 
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """Handle CORS preflight requests"""
+    return {"message": "CORS preflight handled"}
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -130,6 +145,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info(f"Request: {request.method} {request.url}")
+    
+    # Log CORS-related headers
+    origin = request.headers.get("origin")
+    if origin:
+        logger.info(f"CORS request from origin: {origin}")
+    
     response = await call_next(request)
     logger.info(f"Response: {response.status_code}")
     return response
