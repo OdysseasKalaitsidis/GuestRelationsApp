@@ -1,18 +1,25 @@
 # services/anonymization_service.py
 import re
-import spacy
 from typing import Dict, List, Any, Optional
 from fastapi import UploadFile
 from io import BytesIO
 from docx import Document
 import pdfplumber
 
-# Load spaCy model for named entity recognition
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    # Fallback if model not available
-    nlp = None
+# Lazy loading of spaCy model
+_nlp = None
+
+def get_nlp():
+    """Get spaCy model with lazy loading"""
+    global _nlp
+    if _nlp is None:
+        try:
+            import spacy
+            _nlp = spacy.load("en_core_web_sm")
+        except OSError:
+            # Fallback if model not available
+            _nlp = None
+    return _nlp
 
 class AnonymizationService:
     """Enhanced anonymization service for documents"""
@@ -81,6 +88,7 @@ class AnonymizationService:
             anonymized_text = re.sub(pattern, replacement, anonymized_text, flags=re.IGNORECASE)
         
         # Use spaCy for named entity recognition if available
+        nlp = get_nlp()
         if nlp:
             doc = nlp(anonymized_text)
             for ent in doc.ents:

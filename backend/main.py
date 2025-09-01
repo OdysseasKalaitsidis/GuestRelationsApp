@@ -34,34 +34,23 @@ app = FastAPI(
 async def startup_event():
     """Test database connection on startup"""
     try:
-        # Get MySQL environment variables with defaults
-        MYSQLUSER = os.getenv('MYSQLUSER')
-        MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
-        MYSQLHOST = os.getenv('MYSQLHOST')
-        MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-        MYSQLDATABASE = os.getenv('MYSQLDATABASE')
+        from db import initialize_database
         
-        # Check if all required environment variables are set
-        if not all([MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE]):
-            logger.warning("MySQL environment variables not found - skipping database connection test")
-            return
-        
-        # Construct DATABASE_URL
-        database_url = (
-            f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
-            f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
-        )
-        
-        logger.info(f"Testing database connection with MySQL...")
-        
-        # Create engine and test connection
-        engine = create_engine(database_url, echo=False)
-        with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
-            logger.info(f"✅ MySQL connection successful! Test query returned: {result.fetchone()}")
+        # Try to initialize database connection
+        if initialize_database():
+            logger.info("✅ Database connection initialized successfully")
+            
+            # Test the connection
+            from db import get_engine
+            engine = get_engine()
+            with engine.connect() as conn:
+                result = conn.execute("SELECT 1")
+                logger.info(f"✅ MySQL connection test successful! Test query returned: {result.fetchone()}")
+        else:
+            logger.warning("⚠️ MySQL environment variables not found - database features will be unavailable")
             
     except Exception as e:
-        logger.error(f"❌ MySQL connection failed: {e}")
+        logger.error(f"❌ Database initialization failed: {e}")
         # Don't raise the exception - let the app start but log the error
         # This allows the app to start even if DB is temporarily unavailable
 

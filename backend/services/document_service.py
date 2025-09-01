@@ -1,7 +1,6 @@
 # services/document_service.py
 import re
 import pdfplumber
-import spacy
 from fastapi import UploadFile
 from io import BytesIO
 from docx import Document
@@ -9,7 +8,20 @@ from typing import List, Dict, Optional
 import zipfile
 import xml.etree.ElementTree as ET
 
-nlp = spacy.load("en_core_web_sm")
+# Lazy loading of spaCy model
+_nlp = None
+
+def get_nlp():
+    """Get spaCy model with lazy loading"""
+    global _nlp
+    if _nlp is None:
+        try:
+            import spacy
+            _nlp = spacy.load("en_core_web_sm")
+        except OSError:
+            # Fallback if model not available
+            _nlp = None
+    return _nlp
 
 def extract_text_from_pdf(file: UploadFile) -> str:
     """Extract text from PDF using pdfplumber without temp files"""
@@ -139,17 +151,19 @@ def anonymise_text(text: str) -> str:
     ]
     
     # Now anonymize the text more selectively - preserve field labels and important names
-    doc = nlp(text)
-    for ent in doc.ents:
-        if ent.label_ in ['PERSON', 'ORG']:
-            # Don't anonymize if it's a guest name, staff name, or important value
-            if (ent.text not in guest_names and 
-                ent.text not in staff_names and 
-                ent.text not in important_values):
-                # Also don't anonymize field labels like "Guest", "Status", "Room", etc.
-                field_labels = ['Guest', 'Status', 'Room', 'Importance', 'Type', 'Source', 'Membership', 'CASE', 'ACTION', 'IN/OUT', 'Created', 'Modified', 'Created by', 'Modified by']
-                if ent.text not in field_labels:
-                    text = text.replace(ent.text, "[NAME]")
+    nlp = get_nlp()
+    if nlp:
+        doc = nlp(text)
+        for ent in doc.ents:
+            if ent.label_ in ['PERSON', 'ORG']:
+                # Don't anonymize if it's a guest name, staff name, or important value
+                if (ent.text not in guest_names and 
+                    ent.text not in staff_names and 
+                    ent.text not in important_values):
+                    # Also don't anonymize field labels like "Guest", "Status", "Room", etc.
+                    field_labels = ['Guest', 'Status', 'Room', 'Importance', 'Type', 'Source', 'Membership', 'CASE', 'ACTION', 'IN/OUT', 'Created', 'Modified', 'Created by', 'Modified by']
+                    if ent.text not in field_labels:
+                        text = text.replace(ent.text, "[NAME]")
     
     return text
 
