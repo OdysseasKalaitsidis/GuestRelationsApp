@@ -21,11 +21,7 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
+      '/api': 'https://guestrelationsapp.onrender.com',
       '/internal-api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
