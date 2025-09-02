@@ -9,9 +9,13 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Supabase configuration
+# Supabase configuration - use SERVICE_ROLE_KEY for backend operations
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+# Use service role key for backend operations (bypasses RLS)
+SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY
 
 # Initialize Supabase client
 supabase = None
@@ -21,12 +25,13 @@ def initialize_supabase():
     global supabase
     
     if not SUPABASE_URL or not SUPABASE_KEY:
-        logger.error("Missing SUPABASE_URL or SUPABASE_KEY environment variables")
+        logger.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/SUPABASE_ANON_KEY environment variables")
         return False
     
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         logger.info("Supabase client initialized successfully")
+        logger.info(f"Using key type: {'Service Role' if SUPABASE_SERVICE_ROLE_KEY else 'Anon'}")
         return True
     except Exception as e:
         logger.error(f"Failed to initialize Supabase client: {e}")

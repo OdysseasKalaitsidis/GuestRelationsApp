@@ -1,9 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from db import get_db
-from services.followup_service import (
+from services.database_service import get_db_service
+from services.followup_service_supabase import (
     get_all_followups, delete_followup, create_followup, update_followup, 
     get_followup_by_id, get_followups_with_case_info, get_anonymized_followups,
     anonymize_existing_followup_text, bulk_anonymize_followups, 
@@ -27,40 +25,40 @@ class AnonymizedFollowupResponse(BaseModel):
     anonymized_case_description: str = None
 
 @router.post("/", response_model=FollowupOut)
-async def create_new_followup(followup: FollowupCreate, db: AsyncSession = Depends(get_db)):
+async def create_new_followup(followup: FollowupCreate, db_service = Depends(get_db_service)):
     """Create a new followup"""
-    return await create_followup(db, followup)
+    return await create_followup(followup)
 
 @router.get("/", response_model=List[FollowupOut])
-async def read_followups(db: AsyncSession = Depends(get_db)):
+async def read_followups(db_service = Depends(get_db_service)):
     """Get all followups"""
-    return await get_all_followups(db)
+    return await get_all_followups()
 
 @router.get("/with-case-info")
-async def read_followups_with_case_info(db: AsyncSession = Depends(get_db)):
+async def read_followups_with_case_info(db_service = Depends(get_db_service)):
     """Get all followups with case information including room"""
-    return await get_followups_with_case_info(db)
+    return await get_followups_with_case_info()
 
 @router.get("/{followup_id}", response_model=FollowupOut)
-async def read_followup(followup_id: int, db: AsyncSession = Depends(get_db)):
+async def read_followup(followup_id: int, db_service = Depends(get_db_service)):
     """Get a specific followup by ID"""
-    followup = await get_followup_by_id(db, followup_id)
+    followup = await get_followup_by_id(followup_id)
     if followup is None:
         raise HTTPException(status_code=404, detail="Followup not found")
     return followup
 
 @router.put("/{followup_id}", response_model=FollowupOut)
-async def update_existing_followup(followup_id: int, followup: FollowupUpdate, db: AsyncSession = Depends(get_db)):
+async def update_existing_followup(followup_id: int, followup: FollowupUpdate, db_service = Depends(get_db_service)):
     """Update an existing followup"""
-    updated_followup = await update_followup(db, followup_id, followup)
+    updated_followup = await update_followup(followup_id, followup)
     if updated_followup is None:
         raise HTTPException(status_code=404, detail="Followup not found")
     return updated_followup
 
 @router.delete("/{followup_id}")
-async def remove_followup(followup_id: int, db: AsyncSession = Depends(get_db)):
+async def remove_followup(followup_id: int, db_service = Depends(get_db_service)):
     """Delete a followup"""
-    followup = await delete_followup(followup_id, db)
+    followup = await delete_followup(followup_id)
     if not followup:
         raise HTTPException(status_code=404, detail="Follow-up not found")
     return {"status": "success", "id": followup_id}
@@ -68,23 +66,23 @@ async def remove_followup(followup_id: int, db: AsyncSession = Depends(get_db)):
 # New anonymization-related endpoints
 
 @router.get("/anonymized/list", response_model=List[AnonymizedFollowupResponse])
-async def read_anonymized_followups(db: AsyncSession = Depends(get_db)):
+async def read_anonymized_followups(db_service = Depends(get_db_service)):
     """
     Get all followups with anonymized case information
     
     This ensures that any PII in case descriptions is properly anonymized
     before being returned
     """
-    return await get_anonymized_followups(db)
+    return await get_anonymized_followups()
 
 @router.post("/{followup_id}/anonymize", response_model=FollowupOut)
-async def anonymize_followup_text(followup_id: int, db: AsyncSession = Depends(get_db)):
+async def anonymize_followup_text(followup_id: int, db_service = Depends(get_db_service)):
     """
     Anonymize the text of an existing followup
     
     This is useful for ensuring that existing followups don't contain PII
     """
-    followup = await anonymize_existing_followup_text(db, followup_id)
+    followup = await anonymize_existing_followup_text(followup_id)
     if followup is None:
         raise HTTPException(status_code=404, detail="Followup not found")
     return followup
@@ -92,42 +90,42 @@ async def anonymize_followup_text(followup_id: int, db: AsyncSession = Depends(g
 @router.post("/bulk-anonymize")
 async def bulk_anonymize_followups_endpoint(
     request: BulkAnonymizationRequest, 
-    db: AsyncSession = Depends(get_db)
+    db_service = Depends(get_db_service)
 ):
     """
     Bulk anonymize multiple followups
     
     This endpoint allows you to anonymize multiple followups at once
     """
-    if not request.followup_ids:
-        raise HTTPException(status_code=400, detail="No followup IDs provided")
-    
-    results = await bulk_anonymize_followups(db, request.followup_ids)
+    anonymized_followups = await bulk_anonymize_followups(request.followup_ids)
     return {
-        "message": f"Processed {results['total_processed']} followups",
-        "results": results
+        "message": f"Anonymized {len(anonymized_followups)} followups",
+        "anonymized_count": len(anonymized_followups),
+        "anonymized_followups": anonymized_followups
     }
 
 @router.get("/anonymization/stats")
-async def get_anonymization_statistics(db: AsyncSession = Depends(get_db)):
+async def get_anonymization_statistics(db_service = Depends(get_db_service)):
     """
-    Get statistics about anonymization in followups
+    Get anonymization statistics for followups
     
-    This helps identify which followups might need anonymization
+    This provides insights into how much data has been anonymized
     """
-    return await get_followup_anonymization_stats(db)
+    stats = await get_followup_anonymization_stats()
+    return stats
 
-@router.post("/from-anonymized-data", response_model=FollowupOut)
-async def create_followup_from_anonymized(
-    case_id: int,
-    anonymized_text: str,
-    assigned_to: int = None,
-    db: AsyncSession = Depends(get_db)
+@router.post("/anonymization/create-from-data")
+async def create_followup_from_anonymized_data_endpoint(
+    anonymized_data: dict,
+    db_service = Depends(get_db_service)
 ):
     """
     Create a followup from anonymized data
     
-    This function ensures that the followup text is properly anonymized
-    and doesn't contain any PII that might have been missed
+    This is useful for creating followups from external sources
+    that have already been anonymized
     """
-    return await create_followup_from_anonymized_data(db, case_id, anonymized_text, assigned_to)
+    followup = await create_followup_from_anonymized_data(anonymized_data)
+    if followup is None:
+        raise HTTPException(status_code=400, detail="Failed to create followup from anonymized data")
+    return followup

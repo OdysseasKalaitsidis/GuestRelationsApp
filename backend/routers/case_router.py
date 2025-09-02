@@ -1,16 +1,13 @@
 # backend/routers/case_router.py
 
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
-from db import get_db
-from services.case_service import create_case, bulk_create_cases, get_cases, get_case_by_id, get_cases_with_followups, update_case
+from services.database_service import get_db_service
+from services.case_service_supabase import create_case, bulk_create_cases, get_cases, get_case_by_id, get_cases_with_followups, update_case
 from services.daily_service import reset_daily_cases
 from services.anonymization_service import anonymization_service
 from schemas.case import CaseCreate, CaseResponse, CaseUpdate
 from routers.auth_route import get_current_admin_user, get_current_user
-from models import User, Case
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -32,20 +29,20 @@ class CaseInputResponse(BaseModel):
     anonymization_summary: Optional[dict] = None
 
 @router.post("/", response_model=CaseResponse)
-async def create_single_case(case: CaseCreate, db: AsyncSession = Depends(get_db)):
+async def create_single_case(case: CaseCreate, db_service = Depends(get_db_service)):
     """Create a single case"""
-    return await create_case(db, case)
+    return await create_case(case)
 
 @router.post("/bulk", response_model=List[CaseResponse])
-async def create_multiple_cases(cases: List[CaseCreate], db: AsyncSession = Depends(get_db)):
+async def create_multiple_cases(cases: List[CaseCreate], db_service = Depends(get_db_service)):
     """Create multiple cases at once"""
-    return await bulk_create_cases(db, cases)
+    return await bulk_create_cases(cases)
 
 @router.post("/manual", response_model=CaseInputResponse)
 async def create_manual_case(
     case_input: ManualCaseInput,
     anonymize: bool = True,
-    db: AsyncSession = Depends(get_db)
+    db_service = Depends(get_db_service)
 ):
     """
     Manually input case information when documents don't contain sufficient data
@@ -174,29 +171,29 @@ async def create_case_from_template(template_name: str = "default"):
     }
 
 @router.get("/", response_model=List[CaseResponse])
-async def read_cases(db: AsyncSession = Depends(get_db)):
+async def read_cases(db_service = Depends(get_db_service)):
     """Get all cases"""
-    return await get_cases(db)
+    return await get_cases()
 
 @router.get("/with-followups")
-async def read_cases_with_followups(db: AsyncSession = Depends(get_db)):
+async def read_cases_with_followups(db_service = Depends(get_db_service)):
     """Get all cases with their associated followups"""
-    return await get_cases_with_followups(db)
+    return await get_cases_with_followups()
 
 @router.post("/reset-daily")
 async def reset_daily_cases_endpoint(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    db_service = Depends(get_db_service),
+    current_user = Depends(get_current_admin_user)
 ):
     """Reset all cases, followups, and tasks for a new day (admin only)"""
-    result = await reset_daily_cases(db)
+    result = await reset_daily_cases(db_service)
     return result
 
 # Parameterized routes must come LAST
 @router.get("/{case_id}", response_model=CaseResponse)
-async def read_case(case_id: int, db: AsyncSession = Depends(get_db)):
+async def read_case(case_id: int, db_service = Depends(get_db_service)):
     """Get a specific case by ID"""
-    case = await get_case_by_id(db, case_id)
+    case = await get_case_by_id(case_id)
     if case is None:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
@@ -205,11 +202,11 @@ async def read_case(case_id: int, db: AsyncSession = Depends(get_db)):
 async def update_case_endpoint(
     case_id: int, 
     case_update: CaseUpdate, 
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db_service = Depends(get_db_service),
+    current_user = Depends(get_current_user)
 ):
     """Update a case (requires authentication)"""
-    case = await update_case(db, case_id, case_update)
+    case = await update_case(case_id, case_update)
     if case is None:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
