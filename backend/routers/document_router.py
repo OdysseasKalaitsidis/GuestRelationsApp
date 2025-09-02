@@ -71,9 +71,18 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
         
         try:
             # Clear data in background (non-blocking)
-            await clear_all_data(db)
+            clear_result = await clear_all_data(db)
+            print(f"✅ Data cleared successfully: {clear_result['message']}")
+            
+            # Verify data is actually cleared
+            from services.daily_service import verify_data_cleared
+            verification = await verify_data_cleared(db)
+            if verification['is_cleared']:
+                print(f"✅ Verification passed: Database is empty")
+            else:
+                print(f"⚠️ Warning: {verification['message']}")
         except Exception as clear_error:
-            print(f"Warning: Could not clear existing data: {clear_error}")
+            print(f"⚠️ Warning: Could not clear existing data: {clear_error}")
             # Continue with upload even if clearing fails
         
         # Step 1: Process the document (optimized)
@@ -141,6 +150,24 @@ async def complete_workflow(
             message=clear_result["message"],
             data=clear_result
         ))
+        
+        # Verify data is actually cleared
+        from services.daily_service import verify_data_cleared
+        verification = await verify_data_cleared(db)
+        if verification['is_cleared']:
+            steps.append(WorkflowStep(
+                step="Data Verification",
+                status="success",
+                message="Database verified empty - ready for new data",
+                data=verification
+            ))
+        else:
+            steps.append(WorkflowStep(
+                step="Data Verification",
+                status="warning",
+                message=f"Warning: {verification['message']}",
+                data=verification
+            ))
         
         # Step 1: Process PDF
         steps.append(WorkflowStep(
