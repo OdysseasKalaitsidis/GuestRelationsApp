@@ -45,12 +45,18 @@ render_domain = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 if render_domain and f"https://{render_domain}" not in origins:
     origins.append(f"https://{render_domain}")
 
+# Add the frontend domain explicitly
+frontend_domain = "https://guestreationadomes.netlify.app"
+if frontend_domain not in origins:
+    origins.append(frontend_domain)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 logger.info(f"CORS origins configured: {origins}")
@@ -112,6 +118,11 @@ def api_health_check():
         "environment": ENVIRONMENT,
         "database": "available" if os.environ.get("SUPABASE_URL") else "unavailable"
     }
+
+@app.options("/api/{path:path}")
+async def options_handler(path: str):
+    """Handle CORS preflight requests"""
+    return {"message": "OK"}
 
 @app.get("/api/debug/env")
 def debug_env():
