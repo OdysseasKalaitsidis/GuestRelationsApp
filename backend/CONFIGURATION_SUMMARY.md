@@ -2,45 +2,38 @@
 
 ## ✅ Environment Variables Configuration
 
-Your FastAPI backend is now properly configured to read MySQL environment variables:
+Your FastAPI backend is now properly configured for Supabase PostgreSQL:
 
 ### Required Environment Variables:
-- `MYSQL_URL` - MySQL connection URL (Railway primary method)
-- `MYSQLUSER` - Database username (fallback)
-- `MYSQLPASSWORD` - Database password (fallback)
-- `MYSQLHOST` - Database host (fallback)
-- `DB_NAME` - Database name (fallback)
+- `DATABASE_URL` - Supabase PostgreSQL connection URL
 - `SECRET_KEY` - Secret key for JWT tokens
 
 ### Optional Environment Variables:
-- `MYSQLPORT` - Database port (defaults to 3306)
 - `ENVIRONMENT` - Environment (development/production)
 - `ALLOWED_ORIGINS` - Additional CORS origins
 - `OPENAI_API_KEY` - OpenAI API key (optional)
+- `SUPABASE_URL` - Supabase project URL (optional, for direct Supabase features)
+- `SUPABASE_KEY` - Supabase service key (optional, for direct Supabase features)
 
 ### Database Connection:
 ```python
-# Updated in backend/db.py and backend/main.py
-# Primary method: Parse MYSQL_URL
-mysql_url = os.environ.get("MYSQL_URL")
-if mysql_url:
-    parsed = urlparse(mysql_url)
-    user = parsed.username
-    password = parsed.password
-    host = parsed.hostname
-    port = parsed.port
-    database = parsed.path.lstrip("/")  # Removes leading slash
-    connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
-else:
-    # Fallback using separate Railway variables with proper stripping
-    user = os.environ.get("MYSQLUSER", "").strip()
-    password = os.environ.get("MYSQLPASSWORD", "").strip()
-    host = os.environ.get("MYSQLHOST", "").strip()
-    port = os.environ.get("MYSQLPORT", "3306")
-    database = os.environ.get("DB_NAME", "").strip()
-    connection_url = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+# Updated in backend/db.py for Supabase PostgreSQL
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-engine = create_engine(connection_url, echo=True)
+# Create async engine for Supabase PostgreSQL
+ssl_context = ssl.create_default_context(cafile=None)
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=True,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_size=int(os.environ.get("DB_POOL_SIZE", 10)),
+    max_overflow=int(os.environ.get("DB_MAX_OVERFLOW", 20)),
+    connect_args={"ssl": ssl_context}
+)
 ```
 
 ## ✅ CORS Configuration
@@ -72,19 +65,21 @@ Your backend is now ready for deployment with:
 1. **Environment Variables**: All database settings use environment variables
 2. **CORS**: Properly configured for your Netlify frontend
 3. **No Hard-coded Values**: All sensitive information is externalized
-4. **Fallback Handling**: Graceful handling when database is unavailable
+4. **Supabase Integration**: Fully configured for Supabase PostgreSQL
+5. **SSL Support**: Proper SSL configuration for Supabase connections
 
 ## 🧪 Testing
 
 Run the test script to verify your configuration:
 ```bash
 cd backend
-python test_environment_config.py
+python test_db_connection.py
 ```
 
 ## 🚀 Next Steps
 
-1. Set your environment variables in your deployment platform (Railway, Heroku, etc.)
-2. Deploy your backend
-3. Your `/api/auth/login` endpoint will work properly
-4. Your Netlify frontend can call your API without CORS issues
+1. Set your environment variables in your deployment platform (Render, Heroku, etc.)
+2. Ensure `DATABASE_URL` points to your Supabase PostgreSQL instance
+3. Deploy your backend
+4. Your `/api/auth/login` endpoint will work properly
+5. Your Netlify frontend can call your API without CORS issues

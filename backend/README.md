@@ -93,7 +93,7 @@ backend/
 
 ### Prerequisites
 - Python 3.8+
-- MySQL/PostgreSQL database
+- Supabase PostgreSQL database
 - OpenAI API key (for AI features)
 
 ### Installation
@@ -105,12 +105,8 @@ pip install -r requirements.txt
 ### Environment Setup
 Create a `.env` file with:
 ```env
-# MySQL Database Configuration
-MYSQLUSER=your_mysql_username
-MYSQLPASSWORD=your_mysql_password
-MYSQLHOST=your_mysql_host
-MYSQLPORT=3306
-MYSQLDATABASE=your_mysql_database
+# Supabase Database Configuration
+DATABASE_URL=your_supabase_postgresql_url
 
 # Application Configuration
 OPENAI_API_KEY=your_openai_key
@@ -151,7 +147,7 @@ The API will be available at `http://localhost:8000` with interactive docs at `/
 
 ## Production Deployment
 
-### Railway Deployment
+### Railway/Render Deployment
 The application is configured for Railway deployment with:
 - Environment-based configuration
 - CORS settings for production

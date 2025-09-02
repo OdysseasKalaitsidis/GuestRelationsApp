@@ -48,17 +48,12 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # Construct DATABASE_URL from MySQL environment variables if available
-    if all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
-            os.getenv('MYSQLHOST'), os.getenv('MYSQLDATABASE')]):
-        MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-        url = (
-            f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-            f"@{os.getenv('MYSQLHOST')}:{MYSQLPORT}/{os.getenv('MYSQLDATABASE')}"
-        )
-    else:
-        # Fallback to DATABASE_URL environment variable or config
-        url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    # Use DATABASE_URL environment variable or config
+    url = os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    
+    # Convert async URL to sync URL for Alembic
+    if url and url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
     
     context.configure(
         url=url,
@@ -78,22 +73,14 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Construct DATABASE_URL from MySQL environment variables if available
-    if all([os.getenv('MYSQLUSER'), os.getenv('MYSQLPASSWORD'), 
-            os.getenv('MYSQLHOST'), os.getenv('MYSQLDATABASE')]):
-        MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-        database_url = (
-            f"mysql+pymysql://{os.getenv('MYSQLUSER')}:{os.getenv('MYSQLPASSWORD')}"
-            f"@{os.getenv('MYSQLHOST')}:{MYSQLPORT}/{os.getenv('MYSQLDATABASE')}"
-        )
-        # Override the config with the constructed URL
+    # Use DATABASE_URL environment variable
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        # Convert async URL to sync URL for Alembic
+        if database_url.startswith("postgresql+asyncpg://"):
+            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        # Override the config with the environment variable
         config.set_main_option("sqlalchemy.url", database_url)
-    else:
-        # Fallback to DATABASE_URL environment variable
-        database_url = os.getenv("DATABASE_URL")
-        if database_url:
-            # Override the config with the environment variable
-            config.set_main_option("sqlalchemy.url", database_url)
     
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),

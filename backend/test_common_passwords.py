@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test login with admin user
+Test common passwords for admin user
 """
 import asyncio
 import os
@@ -13,9 +13,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from services.user_service_supabase import authenticate_user, get_user_by_username
 from supabase_client import initialize_supabase
 
-async def test_admin_login():
-    """Test login with admin user"""
-    print("🔍 Testing login with admin user...")
+async def test_common_passwords():
+    """Test common passwords for admin user"""
+    print("🔍 Testing common passwords for admin user...")
     print("=" * 60)
     
     # Load environment variables
@@ -30,10 +30,9 @@ async def test_admin_login():
     
     # Test with admin user
     test_username = "admin"
-    test_password = "admin"
+    common_passwords = ["admin", "123", "password", "admin123", "123456", "qwerty", "letmein"]
     
     print(f"\n🔍 Testing login for user: '{test_username}'")
-    print(f"🔍 Password: '{test_password}'")
     
     # Step 1: Check if user exists
     print("\n1. Checking if user exists...")
@@ -50,20 +49,25 @@ async def test_admin_login():
         print(f"❌ Error getting user: {e}")
         return
     
-    # Step 2: Try authentication
-    print("\n2. Testing authentication...")
-    try:
-        auth_result = await authenticate_user(test_username, test_password)
-        if auth_result:
-            print("✅ Authentication successful!")
-            print(f"   Authenticated user: {auth_result.get('username')}")
-        else:
-            print("❌ Authentication failed - password might be wrong")
-    except Exception as e:
-        print(f"❌ Authentication error: {e}")
+    # Step 2: Try authentication with common passwords
+    print("\n2. Testing authentication with common passwords...")
+    for password in common_passwords:
+        try:
+            auth_result = await authenticate_user(test_username, password)
+            if auth_result:
+                print(f"✅ Authentication successful with password: '{password}'")
+                print(f"   Authenticated user: {auth_result.get('username')}")
+                return
+            else:
+                print(f"❌ Password '{password}' failed")
+        except Exception as e:
+            print(f"❌ Authentication error with '{password}': {e}")
+    
+    print("\n❌ None of the common passwords worked")
+    print("💡 You may need to reset the password or check what the actual password is")
     
     print("\n" + "=" * 60)
     print("🎉 Test completed!")
 
 if __name__ == "__main__":
-    asyncio.run(test_admin_login())
+    asyncio.run(test_common_passwords())

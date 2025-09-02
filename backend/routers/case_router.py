@@ -186,7 +186,7 @@ async def reset_daily_cases_endpoint(
     current_user = Depends(get_current_admin_user)
 ):
     """Reset all cases, followups, and tasks for a new day (admin only)"""
-            result = await reset_daily_cases()
+    result = await reset_daily_cases()
     return result
 
 # Parameterized routes must come LAST

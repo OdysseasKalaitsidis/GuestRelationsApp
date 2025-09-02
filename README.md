@@ -49,11 +49,11 @@ GR_Domes/
 
 ### Backend
 - **Framework**: FastAPI 0.104+
-- **Database**: SQLAlchemy 2.0+ with MySQL/PostgreSQL
+- **Database**: SQLAlchemy 2.0+ with Supabase PostgreSQL
 - **AI**: OpenAI integration for document analysis
 - **Authentication**: JWT with bcrypt
 - **Document Processing**: PyPDF2, python-docx, spaCy
-- **Deployment**: Railway-ready with environment config
+- **Deployment**: Render-ready with environment config
 
 ### Frontend
 - **Framework**: React 18 with Hooks
@@ -66,9 +66,9 @@ GR_Domes/
 
 - **Python 3.8+** for backend
 - **Node.js 16+** for frontend
-- **MySQL/PostgreSQL** database
+- **Supabase PostgreSQL** database
 - **OpenAI API key** for AI features
-- **Railway account** for deployment (optional)
+- **Supabase account** for database (optional)
 
 ## 🚀 Quick Start
 
@@ -113,7 +113,7 @@ npm run dev
 
 #### Backend (.env)
 ```env
-DATABASE_URL=mysql://user:pass@localhost/guest_relations
+DATABASE_URL=postgresql://user:pass@localhost/guest_relations
 OPENAI_API_KEY=your_openai_api_key
 SECRET_KEY=your_secret_key_here
 ENVIRONMENT=development
@@ -125,7 +125,7 @@ VITE_API_URL=http://localhost:8000/api
 ```
 
 ### Database Configuration
-The system supports both MySQL and PostgreSQL. Update `backend/db.py` and `backend/alembic.ini` for your database choice.
+The system is configured for Supabase PostgreSQL. The `DATABASE_URL` should point to your Supabase PostgreSQL instance.
 
 ## 📚 API Documentation
 

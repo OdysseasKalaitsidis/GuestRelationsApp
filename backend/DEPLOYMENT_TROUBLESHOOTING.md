@@ -13,15 +13,11 @@
 
 ### 2. Database Connection Issues
 
-**Problem**: Missing MySQL environment variables
+**Problem**: Missing DATABASE_URL environment variable
 
 **Solution**:
-- Set the following environment variables:
-  - `MYSQLUSER`
-  - `MYSQLPASSWORD` 
-  - `MYSQLHOST`
-  - `MYSQLDATABASE`
-  - `MYSQLPORT` (optional, defaults to 3306)
+- Set the following environment variable:
+  - `DATABASE_URL` - Supabase PostgreSQL connection URL
 
 ### 3. Spacy Model Issues
 
@@ -35,11 +31,9 @@
 
 **Required for full functionality**:
 ```
-MYSQLUSER=your_mysql_user
-MYSQLPASSWORD=your_mysql_password
-MYSQLHOST=your_mysql_host
-MYSQLDATABASE=your_database_name
+DATABASE_URL=your_supabase_postgresql_url
 OPENAI_API_KEY=your_openai_api_key
+SECRET_KEY=your_secret_key
 ```
 
 **Optional**:
@@ -56,7 +50,7 @@ PORT=8000
 python startup.py
 ```
 
-### Production (Railway/Heroku)
+### Production (Render/Heroku)
 The Procfile uses: `web: python startup.py`
 
 ### Testing

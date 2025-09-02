@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Debug login process step by step
+Test login with correct username
 """
 import asyncio
 import os
@@ -13,9 +13,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from services.user_service_supabase import authenticate_user, get_user_by_username
 from supabase_client import initialize_supabase
 
-async def debug_login():
-    """Debug the login process step by step"""
-    print("🔍 Debugging login process...")
+async def test_correct_login():
+    """Test login with correct username"""
+    print("🔍 Testing login with correct username...")
     print("=" * 60)
     
     # Load environment variables
@@ -28,8 +28,8 @@ async def debug_login():
     
     print("✅ Supabase initialized")
     
-    # Test username to try
-    test_username = "diana"
+    # Test with correct username (capital D)
+    test_username = "Diana"
     test_password = "password"
     
     print(f"\n🔍 Testing login for user: '{test_username}'")
@@ -40,10 +40,8 @@ async def debug_login():
     try:
         user = await get_user_by_username(test_username)
         if user:
-            print(f"✅ User found: {user}")
-            print(f"   Username: {user.get('username')}")
+            print(f"✅ User found: {user.get('username')}")
             print(f"   Email: {user.get('email')}")
-            print(f"   Hashed password: {user.get('hashed_password', 'None')[:20]}...")
             print(f"   Is admin: {user.get('is_admin')}")
         else:
             print("❌ User not found")
@@ -60,29 +58,12 @@ async def debug_login():
             print("✅ Authentication successful!")
             print(f"   Authenticated user: {auth_result.get('username')}")
         else:
-            print("❌ Authentication failed - user not found or invalid password")
+            print("❌ Authentication failed - password might be wrong")
     except Exception as e:
         print(f"❌ Authentication error: {e}")
     
-    # Step 3: Check all users in database
-    print("\n3. Checking all users in database...")
-    try:
-        from supabase_client import get_supabase
-        supabase = get_supabase()
-        
-        response = supabase.table("users").select("id, username, email, is_admin").execute()
-        
-        if response.data:
-            print(f"✅ Found {len(response.data)} users:")
-            for user in response.data:
-                print(f"   - ID: {user.get('id')}, Username: '{user.get('username')}', Email: '{user.get('email')}', Admin: {user.get('is_admin')}")
-        else:
-            print("❌ No users found in database")
-    except Exception as e:
-        print(f"❌ Error querying users: {e}")
-    
     print("\n" + "=" * 60)
-    print("🎉 Debug completed!")
+    print("🎉 Test completed!")
 
 if __name__ == "__main__":
-    asyncio.run(debug_login())
+    asyncio.run(test_correct_login())

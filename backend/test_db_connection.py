@@ -1,33 +1,43 @@
 # test_db_connection.py
 import os
-from sqlalchemy import create_engine
+import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine
+import ssl
+from dotenv import load_dotenv
 
-# Get MySQL environment variables with defaults
-MYSQLUSER = os.getenv('MYSQLUSER')
-MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
-MYSQLHOST = os.getenv('MYSQLHOST')
-MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-MYSQLDATABASE = os.getenv('MYSQLDATABASE')
+# Load environment variables
+load_dotenv()
 
-# Check if all required environment variables are set
-if not all([MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE]):
-    raise RuntimeError("Missing required MySQL environment variables: MYSQLUSER, MYSQLPASSWORD, MYSQLHOST, MYSQLDATABASE")
+# Get DATABASE_URL environment variable
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-# Construct DATABASE_URL
-DATABASE_URL = (
-    f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
-    f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
+# Check if DATABASE_URL is set
+if not DATABASE_URL:
+    raise RuntimeError("Missing required DATABASE_URL environment variable")
+
+print("Using DATABASE_URL:", DATABASE_URL[:30] + "...")
+
+# Create SSL context for Supabase
+ssl_context = ssl.create_default_context(cafile=None)
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+# Create async engine with SSL configuration
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    connect_args={"ssl": ssl_context}
 )
 
-print("Using MySQL URL:", DATABASE_URL)
-
-# Create engine
-engine = create_engine(DATABASE_URL, echo=False)
-
 # Test connection
-try:
-    with engine.connect() as conn:
-        result = conn.execute("SELECT 1")
-        print("✅ MySQL connection successful! Test query returned:", result.fetchone())
-except Exception as e:
-    print("❌ MySQL connection failed:", e)
+async def test_connection():
+    try:
+        from sqlalchemy import text
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT 1"))
+            print("✅ Supabase connection successful! Test query returned:", result.fetchone())
+    except Exception as e:
+        print("❌ Supabase connection failed:", e)
+
+# Run the async test
+asyncio.run(test_connection())

@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python3
 """
-Database setup script for Railway deployment
+Database setup script for Supabase deployment
 """
 import os
 import subprocess
@@ -13,29 +13,15 @@ def main():
     
     print("Setting up database...")
     
-    # Get MySQL environment variables with defaults
-    MYSQLUSER = os.getenv('MYSQLUSER')
-    MYSQLPASSWORD = os.getenv('MYSQLPASSWORD')
-    MYSQLHOST = os.getenv('MYSQLHOST')
-    MYSQLPORT = os.getenv('MYSQLPORT', '3306')  # Default to 3306 if not set
-    MYSQLDATABASE = os.getenv('MYSQLDATABASE')
+    # Get DATABASE_URL environment variable
+    DATABASE_URL = os.getenv('DATABASE_URL')
     
-    # Check if all required MySQL environment variables are set
-    required_vars = ['MYSQLUSER', 'MYSQLPASSWORD', 'MYSQLHOST', 'MYSQLDATABASE']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        print(f"❌ Missing MySQL environment variables: {', '.join(missing_vars)}")
-        print("Please set up a MySQL database and ensure all MySQL environment variables are configured.")
+    if not DATABASE_URL:
+        print("❌ Missing DATABASE_URL environment variable")
+        print("Please set up your Supabase database and ensure DATABASE_URL is configured.")
         sys.exit(1)
     
-    # Construct DATABASE_URL from individual variables
-    DATABASE_URL = (
-        f"mysql+pymysql://{MYSQLUSER}:{MYSQLPASSWORD}"
-        f"@{MYSQLHOST}:{MYSQLPORT}/{MYSQLDATABASE}"
-    )
-    
-    print(f"✅ MySQL environment variables found: {DATABASE_URL[:20]}...")
+    print(f"✅ DATABASE_URL found: {DATABASE_URL[:30]}...")
     
     try:
         # Run database migrations
@@ -45,7 +31,7 @@ def main():
             capture_output=True,
             text=True,
             cwd=".",
-            env={**os.environ, "DATABASE_URL": DATABASE_URL}
+            env={**os.environ}
         )
         
         if result.returncode == 0:

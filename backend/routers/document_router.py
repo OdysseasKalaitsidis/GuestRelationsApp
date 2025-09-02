@@ -1,6 +1,8 @@
 import os
 import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 from services.document_service import process_document
 from services.ai_service import suggest_feedback
 from services.case_service_supabase import bulk_create_cases

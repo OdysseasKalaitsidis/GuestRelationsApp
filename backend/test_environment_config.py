@@ -15,42 +15,29 @@ def test_environment_variables():
     
     # Required environment variables
     required_vars = {
-        'MYSQL_URL': 'MySQL connection URL (Railway)',
-        'MYSQLUSER': 'Database username (fallback)',
-        'MYSQLPASSWORD': 'Database password (fallback)', 
-        'MYSQLHOST': 'Database host (fallback)',
-        'DB_NAME': 'Database name (fallback)'
+        'DATABASE_URL': 'Supabase PostgreSQL connection URL'
     }
     
     # Optional environment variables
     optional_vars = {
-        'MYSQLPORT': 'Database port (default: 3306)',
         'ENVIRONMENT': 'Environment (development/production)',
         'ALLOWED_ORIGINS': 'Additional CORS origins',
         'SECRET_KEY': 'Secret key for JWT tokens',
-        'OPENAI_API_KEY': 'OpenAI API key (optional)'
+        'OPENAI_API_KEY': 'OpenAI API key (optional)',
+        'SUPABASE_URL': 'Supabase project URL (optional)',
+        'SUPABASE_KEY': 'Supabase service key (optional)'
     }
     
     print("\n📋 Required Environment Variables:")
     all_required_set = True
     
-    # Check if MYSQL_URL is set (primary method)
-    mysql_url = os.getenv('MYSQL_URL')
-    if mysql_url:
-        print(f"  ✅ MYSQL_URL: *** (MySQL connection URL - primary method)")
+    # Check DATABASE_URL
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        print(f"  ✅ DATABASE_URL: *** (Supabase PostgreSQL connection URL)")
     else:
-        # Check fallback variables
-        for var, description in required_vars.items():
-            if var == 'MYSQL_URL':
-                continue  # Skip MYSQL_URL since we already checked it
-            value = os.getenv(var)
-            if value:
-                # Mask password for security
-                display_value = "***" if var == 'MYSQLPASSWORD' else value
-                print(f"  ✅ {var}: {display_value} ({description})")
-            else:
-                print(f"  ❌ {var}: NOT SET ({description})")
-                all_required_set = False
+        print(f"  ❌ DATABASE_URL: NOT SET (Supabase PostgreSQL connection URL)")
+        all_required_set = False
     
     print("\n📋 Optional Environment Variables:")
     for var, description in optional_vars.items():
@@ -85,9 +72,9 @@ def test_database_connection():
         
         # Mask password in URL for security
         masked_url = database_url.replace(
-            os.getenv('MYSQLPASSWORD', ''), 
+            database_url.split('@')[0].split(':')[-1], 
             '***'
-        )
+        ) if '@' in database_url else database_url[:30] + '***'
         print(f"✅ Database URL constructed: {masked_url}")
         
         # Test initialization
@@ -97,11 +84,19 @@ def test_database_connection():
             # Test actual connection
             from db import get_engine
             engine = get_engine()
-            with engine.connect() as conn:
-                result = conn.execute("SELECT 1 as test")
-                row = result.fetchone()
-                print(f"✅ Database connection test successful! Query returned: {row[0]}")
-            return True
+            # Use async context manager for async engine
+            import asyncio
+            from sqlalchemy import text
+            async def test_connection():
+                async with engine.connect() as conn:
+                    result = await conn.execute(text("SELECT 1 as test"))
+                    row = result.fetchone()
+                    print(f"✅ Database connection test successful! Query returned: {row[0]}")
+                    return True
+            
+            # Run the async test
+            result = asyncio.run(test_connection())
+            return result
         else:
             print("❌ Database initialization failed")
             return False
