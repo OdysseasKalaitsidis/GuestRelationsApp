@@ -1,17 +1,14 @@
 import os
 import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 from services.document_service import process_document
 from services.ai_service import suggest_feedback
-from services.case_service import bulk_create_cases
-from services.followup_service import create_followup
+from services.case_service_supabase import bulk_create_cases
+from services.followup_service_supabase import create_followup
 from schemas.case import CaseCreate
 from schemas.followup import FollowupCreate
 from pydantic import BaseModel
 from typing import List, Optional
-from db import get_db
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -51,7 +48,7 @@ class CompleteWorkflowResponse(BaseModel):
 import time
 
 @router.post("/upload", response_model=DocumentUploadResponse)
-async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+async def upload_document(file: UploadFile = File(...)):
     """
     Upload a PDF or DOCX file, process it, and return structured cases as JSON.
     This endpoint now automatically clears existing data before processing the new document.
@@ -67,16 +64,16 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
     
     try:
         # Step 0: Clear all previous data before processing new document
-        from services.daily_service import clear_all_data
+        from services.daily_service_supabase import clear_all_data
         
         try:
             # Clear data in background (non-blocking)
-            clear_result = await clear_all_data(db)
+            clear_result = await clear_all_data()
             print(f"✅ Data cleared successfully: {clear_result['message']}")
             
             # Verify data is actually cleared
-            from services.daily_service import verify_data_cleared
-            verification = await verify_data_cleared(db)
+            from services.daily_service_supabase import verify_data_cleared
+            verification = await verify_data_cleared()
             if verification['is_cleared']:
                 print(f"✅ Verification passed: Database is empty")
             else:
@@ -131,7 +128,6 @@ async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depen
 @router.post("/workflow", response_model=CompleteWorkflowResponse)
 async def complete_workflow(
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
     create_cases: bool = True
 ):
     """
@@ -141,9 +137,9 @@ async def complete_workflow(
     
     try:
         # Step 0: Clear all previous data
-        from services.daily_service import clear_all_data
+        from services.daily_service_supabase import clear_all_data
         
-        clear_result = await clear_all_data(db)
+        clear_result = await clear_all_data()
         steps.append(WorkflowStep(
             step="Data Clearance",
             status="success",
@@ -152,8 +148,8 @@ async def complete_workflow(
         ))
         
         # Verify data is actually cleared
-        from services.daily_service import verify_data_cleared
-        verification = await verify_data_cleared(db)
+        from services.daily_service_supabase import verify_data_cleared
+        verification = await verify_data_cleared()
         if verification['is_cleared']:
             steps.append(WorkflowStep(
                 step="Data Verification",
@@ -274,7 +270,7 @@ async def complete_workflow(
                 
                 case_objects.append(case_obj)
             
-            created_cases = await bulk_create_cases(db, case_objects)
+            created_cases = await bulk_create_cases(case_objects)
         steps.append(WorkflowStep(
             step="Case Creation",
             status="success",
@@ -292,7 +288,7 @@ async def complete_workflow(
                         suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available"),
                         status="pending"
                     )
-                    await create_followup(db, followup_data)
+                    await create_followup(followup_data)
                     followups_created += 1
         
         steps.append(WorkflowStep(

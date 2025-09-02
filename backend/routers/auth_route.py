@@ -24,8 +24,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db_service = D
             )
         token = create_access_token({"sub": user["username"], "is_admin": user["is_admin"], "user_id": user["id"]})
         return {"access_token": token, "token_type": "bearer", "user": user}
+    except HTTPException:
+        # Re-raise HTTP exceptions as they are
+        raise
     except Exception as e:
         logger.error(f"Login error: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error args: {e.args}")
         if "Database not configured" in str(e):
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -33,7 +38,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db_service = D
             )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail=f"Internal server error: {str(e)}"
         )
 
 @router.post("/auth/register", response_model=UserResponse)

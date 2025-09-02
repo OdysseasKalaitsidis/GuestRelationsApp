@@ -9,12 +9,12 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Supabase configuration - use SERVICE_ROLE_KEY for backend operations
+# Supabase configuration - use ANON_KEY for now since service role key is invalid
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
-# Use service role key for backend operations (bypasses RLS)
+# Use service role key since it's now working
 SUPABASE_KEY = SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY
 
 # Initialize Supabase client

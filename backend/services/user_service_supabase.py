@@ -41,15 +41,21 @@ async def create_user(user: UserCreate) -> Optional[Dict[str, Any]]:
 async def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
     """Get user by username using Supabase"""
     try:
+        logger.info(f"Looking up user by username: {username}")
         supabase = get_supabase()
         response = supabase.table("users").select("*").eq("username", username).execute()
         
+        logger.info(f"Supabase response: {response}")
         if response.data:
+            logger.info(f"User found: {response.data[0]}")
             return response.data[0]
+        logger.warning(f"No user found with username: {username}")
         return None
         
     except Exception as e:
-        logger.error(f"Error getting user by username: {e}")
+        logger.error(f"Error getting user by username {username}: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error args: {e.args}")
         return None
 
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -146,16 +152,23 @@ async def delete_user(user_id: int) -> bool:
 async def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     """Authenticate user with username and password using Supabase"""
     try:
+        logger.info(f"Attempting to authenticate user: {username}")
         user = await get_user_by_username(username)
         if not user:
+            logger.warning(f"User not found: {username}")
             return None
         
+        logger.info(f"User found: {username}, checking password...")
         # Verify password
         if not verify_password(password, user["hashed_password"]):
+            logger.warning(f"Invalid password for user: {username}")
             return None
         
+        logger.info(f"Authentication successful for user: {username}")
         return user
         
     except Exception as e:
-        logger.error(f"Error authenticating user: {e}")
+        logger.error(f"Error authenticating user {username}: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error args: {e.args}")
         return None

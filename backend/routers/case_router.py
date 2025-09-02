@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from services.database_service import get_db_service
 from services.case_service_supabase import create_case, bulk_create_cases, get_cases, get_case_by_id, get_cases_with_followups, update_case
-from services.daily_service import reset_daily_cases
+from services.daily_service_supabase import reset_daily_cases
 from services.anonymization_service import anonymization_service
 from schemas.case import CaseCreate, CaseResponse, CaseUpdate
 from routers.auth_route import get_current_admin_user, get_current_user
@@ -186,7 +186,7 @@ async def reset_daily_cases_endpoint(
     current_user = Depends(get_current_admin_user)
 ):
     """Reset all cases, followups, and tasks for a new day (admin only)"""
-    result = await reset_daily_cases(db_service)
+            result = await reset_daily_cases()
     return result
 
 # Parameterized routes must come LAST

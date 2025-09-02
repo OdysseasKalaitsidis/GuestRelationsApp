@@ -113,6 +113,42 @@ def api_health_check():
         "database": "available" if os.environ.get("SUPABASE_URL") else "unavailable"
     }
 
+@app.get("/api/debug/env")
+def debug_env():
+    """Debug endpoint to check environment variables (remove in production)"""
+    return {
+        "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL")),
+        "SUPABASE_SERVICE_ROLE_KEY": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
+        "SUPABASE_ANON_KEY": bool(os.environ.get("SUPABASE_ANON_KEY")),
+        "SECRET_KEY": bool(os.environ.get("SECRET_KEY")),
+        "has_secret_key": bool(SECRET_KEY),
+    }
+
+@app.get("/api/debug/users")
+async def debug_users():
+    """Debug endpoint to list users (remove in production)"""
+    try:
+        from supabase_client import get_supabase
+        supabase = get_supabase()
+        response = supabase.table("users").select("id, username, email, is_admin").execute()
+        
+        if response.data:
+            return {
+                "users": response.data,
+                "count": len(response.data)
+            }
+        else:
+            return {
+                "users": [],
+                "count": 0,
+                "message": "No users found"
+            }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
 @app.post("/api/auth/login-fallback")
 def login_fallback():
     return {
