@@ -1,26 +1,30 @@
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models import Followup, Case
 from schemas.followup import FollowupCreate, FollowupUpdate
 from typing import List, Optional, Dict, Any
 from services.anonymization_service import anonymization_service
 
-def create_followup(db: Session, followup: FollowupCreate) -> Followup:
+async def create_followup(db: AsyncSession, followup: FollowupCreate) -> Followup:
     """Create a new followup"""
-    db_followup = Followup(**followup.model_dump())
+    db_followup = Followup(**followup.dict())
     db.add(db_followup)
-    db.commit()
-    db.refresh(db_followup)
+    await db.commit()
+    await db.refresh(db_followup)
     return db_followup
 
-def get_all_followups(db: Session) -> List[Followup]:
+async def get_all_followups(db: AsyncSession) -> List[Followup]:
     """Get all followups"""
-    return db.query(Followup).all()
+    result = await db.execute(select(Followup))
+    return result.scalars().all()
 
-def get_followups_with_case_info(db: Session) -> List[Dict[str, Any]]:
+async def get_followups_with_case_info(db: AsyncSession) -> List[Dict[str, Any]]:
     """Get all followups with case information including room"""
-    followups = db.query(Followup).join(Case).all()
-    result = []
+    result = await db.execute(select(Followup).join(Case))
+    followups = result.scalars().all()
     
+    result_list = []
     for followup in followups:
         followup_data = {
             "id": followup.id,
@@ -29,39 +33,42 @@ def get_followups_with_case_info(db: Session) -> List[Dict[str, Any]]:
             "suggestion_text": followup.suggestion_text,
             "assigned_to": followup.assigned_to
         }
-        result.append(followup_data)
+        result_list.append(followup_data)
     
-    return result
+    return result_list
 
-def get_followup_by_id(db: Session, followup_id: int) -> Optional[Followup]:
+async def get_followup_by_id(db: AsyncSession, followup_id: int) -> Optional[Followup]:
     """Get a followup by ID"""
-    return db.query(Followup).filter(Followup.id == followup_id).first()
+    result = await db.execute(select(Followup).filter(Followup.id == followup_id))
+    return result.scalars().first()
 
-def update_followup(db: Session, followup_id: int, followup: FollowupUpdate) -> Optional[Followup]:
+async def update_followup(db: AsyncSession, followup_id: int, followup: FollowupUpdate) -> Optional[Followup]:
     """Update a followup"""
-    db_followup = db.query(Followup).filter(Followup.id == followup_id).first()
+    result = await db.execute(select(Followup).filter(Followup.id == followup_id))
+    db_followup = result.scalars().first()
     if not db_followup:
         return None
     
-    update_data = followup.model_dump(exclude_unset=True)
+    update_data = followup.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_followup, field, value)
     
-    db.commit()
-    db.refresh(db_followup)
+    await db.commit()
+    await db.refresh(db_followup)
     return db_followup
 
-def delete_followup(followup_id: int, db: Session) -> Optional[Followup]:
+async def delete_followup(followup_id: int, db: AsyncSession) -> Optional[Followup]:
     """Delete a followup"""
-    followup = db.query(Followup).filter(Followup.id == followup_id).first()
+    result = await db.execute(select(Followup).filter(Followup.id == followup_id))
+    followup = result.scalars().first()
     if not followup:
         return None
-    db.delete(followup)
-    db.commit()
+    await db.delete(followup)
+    await db.commit()
     return followup
 
-def create_followup_from_anonymized_data(
-    db: Session, 
+async def create_followup_from_anonymized_data(
+    db: AsyncSession, 
     case_id: int, 
     anonymized_text: str, 
     assigned_to: Optional[int] = None
@@ -81,18 +88,19 @@ def create_followup_from_anonymized_data(
         assigned_to=assigned_to
     )
     
-    return create_followup(db, followup_data)
+    return await create_followup(db, followup_data)
 
-def get_anonymized_followups(db: Session) -> List[Dict[str, Any]]:
+async def get_anonymized_followups(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     Get all followups with anonymized case information
     
     This ensures that any PII in case descriptions is properly anonymized
     before being returned
     """
-    followups = db.query(Followup).join(Case).all()
-    result = []
+    result = await db.execute(select(Followup).join(Case))
+    followups = result.scalars().all()
     
+    result_list = []
     for followup in followups:
         # Anonymize case title and description if they exist
         case_title = followup.case.title if followup.case else None
@@ -110,17 +118,17 @@ def get_anonymized_followups(db: Session) -> List[Dict[str, Any]]:
             "anonymized_case_title": anonymized_title,
             "anonymized_case_description": anonymized_description
         }
-        result.append(followup_data)
+        result_list.append(followup_data)
     
-    return result
+    return result_list
 
-def anonymize_existing_followup_text(db: Session, followup_id: int) -> Optional[Followup]:
+async def anonymize_existing_followup_text(db: AsyncSession, followup_id: int) -> Optional[Followup]:
     """
     Anonymize the text of an existing followup
     
     This is useful for ensuring that existing followups don't contain PII
     """
-    followup = get_followup_by_id(db, followup_id)
+    followup = await get_followup_by_id(db, followup_id)
     if not followup:
         return None
     
@@ -129,9 +137,9 @@ def anonymize_existing_followup_text(db: Session, followup_id: int) -> Optional[
     
     # Update the followup with anonymized text
     update_data = FollowupUpdate(suggestion_text=anonymized_text)
-    return update_followup(db, followup_id, update_data)
+    return await update_followup(db, followup_id, update_data)
 
-def bulk_anonymize_followups(db: Session, followup_ids: List[int]) -> Dict[str, Any]:
+async def bulk_anonymize_followups(db: AsyncSession, followup_ids: List[int]) -> Dict[str, Any]:
     """
     Bulk anonymize multiple followups
     
@@ -146,7 +154,7 @@ def bulk_anonymize_followups(db: Session, followup_ids: List[int]) -> Dict[str, 
     
     for followup_id in followup_ids:
         try:
-            followup = anonymize_existing_followup_text(db, followup_id)
+            followup = await anonymize_existing_followup_text(db, followup_id)
             if followup:
                 results["successful"].append(followup_id)
                 results["total_anonymized"] += 1
@@ -159,13 +167,14 @@ def bulk_anonymize_followups(db: Session, followup_ids: List[int]) -> Dict[str, 
     
     return results
 
-def get_followup_anonymization_stats(db: Session) -> Dict[str, Any]:
+async def get_followup_anonymization_stats(db: AsyncSession) -> Dict[str, Any]:
     """
     Get statistics about anonymization in followups
     
     This helps identify which followups might need anonymization
     """
-    followups = db.query(Followup).all()
+    result = await db.execute(select(Followup))
+    followups = result.scalars().all()
     
     stats = {
         "total_followups": len(followups),

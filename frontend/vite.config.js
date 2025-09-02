@@ -22,14 +22,14 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://guestrelationsapp-production.up.railway.app',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
       '/internal-api': {
-        target: 'https://guestrelationsapp.railway.internal',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: true,
+        secure: false,
       },
     },
   },

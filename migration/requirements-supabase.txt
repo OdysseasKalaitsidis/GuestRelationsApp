@@ -37,4 +37,4 @@ supabase==2.0.0
 # Development and testing (optional)
 pytest==7.4.3
 pytest-asyncio==0.21.1
-httpx>=0.24.0,<0.25.0  # Compatible with both openai and supabase
+httpx==0.25.2  # For async HTTP testing

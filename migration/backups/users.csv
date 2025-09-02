@@ -1,0 +1,7 @@
+id,username,name,email,hashed_password,is_admin
+1,Diana,Guest Relations Manager - Diana,grm@domesofcorfu.com,$2b$12$ZfzDBt80.j5pdbOjTX2qg.hwVC3Ic8VoE48OIIDUQr4asJ3X2qxd6,1
+2,Aggeliki,Guest Relations Assistant Manager - Aggeliki,agrm@domesofcorfu.com,$2b$12$vSOMVjzZsxKg1ZhoOkQTg.XnEho1FXvaEiubCeOt0.QK42V7iOg/y,1
+3,Odysseas,Odysseas,odysseas@domesofcorfu.com,$2b$12$NCXOBVTIgTuI1fzJjGX3HOt0J83hiObktuwR9.gyIUyCNSvM3c4Fa,0
+4,Stella,Stella,stella@domesofcorfu.com,$2b$12$fIGTZN8FyAw6mDnZHlvaAu7IlpWXGCGh7ARwCG8BA5bSkyscdM9iS,0
+5,Maria,Maria,maria@domesofcorfu.com,$2b$12$0qb8vqXkwjbFZNKO3udYz..pgmgLO.7viwggqLVg0GA19cBknH45a,0
+6,Eleutherios,Eleutherios,eleutherios@domesofcorfu.com,$2b$12$Lut6XtrcNAF.6bJF8SDdZOYqHdh14UYRbdCGQvuJKneuaLchECfW.,0

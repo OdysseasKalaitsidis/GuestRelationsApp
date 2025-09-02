@@ -77,7 +77,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       formData.append("file", pdfFile);
       formData.append("create_cases", "false");
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/documents/workflow`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/documents/workflow`, {
         method: "POST",
         headers: {
           ...getAuthHeaders(),

@@ -2,14 +2,9 @@
 
 import os
 import logging
-import ssl
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from dotenv import load_dotenv
-
-# Load environment variables early
-load_dotenv()
 
 Base = declarative_base()
 engine = None
@@ -18,13 +13,7 @@ logger = logging.getLogger(__name__)
 
 def get_database_url():
     """Build the SQLAlchemy database URL for Supabase"""
-    db_url = os.environ.get("DATABASE_URL")
-    if db_url:
-        # Ensure we're using asyncpg driver for async connections
-        if db_url.startswith("postgresql://") and "+asyncpg" not in db_url:
-            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return db_url
-    return None
+    return os.environ.get("DATABASE_URL")
 
 def initialize_database():
     """Initialize engine and session with Supabase settings"""
@@ -34,20 +23,13 @@ def initialize_database():
         logger.info("Initializing Supabase database connection")
         
         # Create async engine for Supabase PostgreSQL
-        ssl_context = ssl.create_default_context(cafile=None)
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        
         engine = create_async_engine(
             db_url,
             echo=True,
             pool_pre_ping=True,
             pool_recycle=3600,
             pool_size=int(os.environ.get("DB_POOL_SIZE", 10)),
-            max_overflow=int(os.environ.get("DB_MAX_OVERFLOW", 20)),
-            connect_args={
-                "ssl": ssl_context
-            }
+            max_overflow=int(os.environ.get("DB_MAX_OVERFLOW", 20))
         )
         
         # Create async session maker
@@ -85,18 +67,13 @@ def get_engine():
 async def test_connection():
     """Test database connection"""
     try:
-        # Check if engine is initialized
-        if engine is None:
-            logger.warning("Database engine not initialized - no DATABASE_URL provided")
-            return False
-            
         async with engine.connect() as conn:
             result = await conn.execute(text("SELECT 1"))
             value = result.scalar()
-            logger.info(f"Supabase test query returned: {value}")
+            logger.info(f"✅ Supabase test query returned: {value}")
             return True
     except Exception as e:
-        logger.error(f"Supabase connection test failed: {e}")
+        logger.error(f"❌ Supabase connection test failed: {e}")
         return False
 
 # Legacy MySQL support for rollback (optional)

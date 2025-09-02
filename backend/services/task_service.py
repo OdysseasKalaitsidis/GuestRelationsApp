@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models import Task, User
 from schemas.task import TaskCreate, TaskUpdate
 from typing import List, Optional
 from datetime import datetime, date
 
-def create_task(db: Session, task: TaskCreate, assigned_by: int) -> Task:
+async def create_task(db: AsyncSession, task: TaskCreate, assigned_by: int) -> Task:
     """Create a new task"""
     today = date.today().strftime("%Y-%m-%d")
     
@@ -19,37 +21,42 @@ def create_task(db: Session, task: TaskCreate, assigned_by: int) -> Task:
         status="pending"
     )
     db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
+    await db.commit()
+    await db.refresh(db_task)
     return db_task
 
-def get_task_by_id(db: Session, task_id: int) -> Optional[Task]:
+async def get_task_by_id(db: AsyncSession, task_id: int) -> Optional[Task]:
     """Get task by ID"""
-    return db.query(Task).filter(Task.id == task_id).first()
+    result = await db.execute(select(Task).filter(Task.id == task_id))
+    return result.scalars().first()
 
-def get_all_tasks(db: Session) -> List[Task]:
+async def get_all_tasks(db: AsyncSession) -> List[Task]:
     """Get all tasks"""
-    return db.query(Task).all()
+    result = await db.execute(select(Task))
+    return result.scalars().all()
 
-def get_tasks_by_user(db: Session, user_id: int) -> List[Task]:
+async def get_tasks_by_user(db: AsyncSession, user_id: int) -> List[Task]:
     """Get tasks assigned to a specific user"""
-    return db.query(Task).filter(Task.assigned_to == user_id).all()
+    result = await db.execute(select(Task).filter(Task.assigned_to == user_id))
+    return result.scalars().all()
 
-def get_tasks_by_date(db: Session, task_date: str) -> List[Task]:
+async def get_tasks_by_date(db: AsyncSession, task_date: str) -> List[Task]:
     """Get tasks for a specific date"""
-    return db.query(Task).filter(Task.due_date == task_date).all()
+    result = await db.execute(select(Task).filter(Task.due_date == task_date))
+    return result.scalars().all()
 
-def get_tasks_by_type(db: Session, task_type: str) -> List[Task]:
+async def get_tasks_by_type(db: AsyncSession, task_type: str) -> List[Task]:
     """Get tasks by type"""
-    return db.query(Task).filter(Task.task_type == task_type).all()
+    result = await db.execute(select(Task).filter(Task.task_type == task_type))
+    return result.scalars().all()
 
-def update_task(db: Session, task_id: int, task_update: TaskUpdate) -> Optional[Task]:
+async def update_task(db: AsyncSession, task_id: int, task_update: TaskUpdate) -> Optional[Task]:
     """Update task information"""
-    db_task = get_task_by_id(db, task_id)
+    db_task = await get_task_by_id(db, task_id)
     if not db_task:
         return None
     
-    update_data = task_update.model_dump(exclude_unset=True)
+    update_data = task_update.dict(exclude_unset=True)
     
     # If status is being updated to completed, set completed_at
     if "status" in update_data and update_data["status"] == "completed":
@@ -58,21 +65,21 @@ def update_task(db: Session, task_id: int, task_update: TaskUpdate) -> Optional[
     for field, value in update_data.items():
         setattr(db_task, field, value)
     
-    db.commit()
-    db.refresh(db_task)
+    await db.commit()
+    await db.refresh(db_task)
     return db_task
 
-def delete_task(db: Session, task_id: int) -> bool:
+async def delete_task(db: AsyncSession, task_id: int) -> bool:
     """Delete a task"""
-    db_task = get_task_by_id(db, task_id)
+    db_task = await get_task_by_id(db, task_id)
     if not db_task:
         return False
     
-    db.delete(db_task)
-    db.commit()
+    await db.delete(db_task)
+    await db.commit()
     return True
 
-def create_daily_tasks(db: Session, assigned_by: int, task_date: str) -> List[Task]:
+async def create_daily_tasks(db: AsyncSession, assigned_by: int, task_date: str) -> List[Task]:
     """Create the three daily tasks: amenity list, emails, courtesy calls"""
     daily_tasks = [
         {
@@ -100,19 +107,27 @@ def create_daily_tasks(db: Session, assigned_by: int, task_date: str) -> List[Ta
             task_type=task_data["task_type"],
             due_date=task_date
         )
-        created_task = create_task(db, task, assigned_by)
+        created_task = await create_task(db, task, assigned_by)
         created_tasks.append(created_task)
     
     return created_tasks
 
-def get_tasks_with_user_info(db: Session) -> List[dict]:
+async def get_tasks_with_user_info(db: AsyncSession) -> List[dict]:
     """Get tasks with user information"""
-    tasks = db.query(Task).all()
-    result = []
+    result = await db.execute(select(Task))
+    tasks = result.scalars().all()
     
+    result_list = []
     for task in tasks:
-        assigned_user = db.query(User).filter(User.id == task.assigned_to).first() if task.assigned_to else None
-        assigner = db.query(User).filter(User.id == task.assigned_by).first()
+        assigned_user = None
+        assigner = None
+        
+        if task.assigned_to:
+            user_result = await db.execute(select(User).filter(User.id == task.assigned_to))
+            assigned_user = user_result.scalars().first()
+        
+        assigner_result = await db.execute(select(User).filter(User.id == task.assigned_by))
+        assigner = assigner_result.scalars().first()
         
         task_dict = {
             "id": task.id,
@@ -128,6 +143,6 @@ def get_tasks_with_user_info(db: Session) -> List[dict]:
             "assigned_user_name": assigned_user.name if assigned_user else None,
             "assigner_name": assigner.name if assigner else "Unknown"
         }
-        result.append(task_dict)
+        result_list.append(task_dict)
     
-    return result
+    return result_list

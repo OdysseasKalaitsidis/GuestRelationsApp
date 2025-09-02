@@ -1,0 +1,45 @@
+{
+  "supabase": {
+    "project_id": "sjjuaesddqzfcdahutfl",
+    "url": "https://sjjuaesddqzfcdahutfl.supabase.co",
+    "anon_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqanVhZXNkZHF6ZmNkYWh1dGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3OTg3MDgsImV4cCI6MjA3MjM3NDcwOH0.odLIyJX8NeDuza67zXdcTuqfl6oqlJutIww0gUCdMwQ",
+    "service_role_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqanVhZXNkZHF6ZmNkYWh1dGZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njc5ODcwOCwiZXhwIjoyMDcyMzc0NzA4fQ.wz_qjM4NPeatEir712ug6tHikb4oM8-Mlaie8ezxSj8",
+    "database_password": "Odysseaskal"
+  },
+  "migration": {
+    "source": {
+      "type": "mysql",
+      "host": "localhost",
+      "port": 3306,
+      "database": "mydb",
+      "user": "myuser",
+      "password": "Odkalaitsidis12@"
+    },
+    "target": {
+      "type": "postgresql",
+      "host": "db.sjjuaesddqzfcdahutfl.supabase.co",
+      "port": 5432,
+      "database": "postgres",
+      "user": "postgres",
+      "password": "Odysseaskal",
+      "ssl_mode": "require"
+    }
+  },
+  "tables": [
+    "users",
+    "cases", 
+    "followups",
+    "tasks",
+    "documents"
+  ],
+  "extensions": [
+    "pgcrypto",
+    "pg_trgm", 
+    "uuid-ossp"
+  ],
+  "settings": {
+    "enable_rls": false,
+    "backup_retention_days": 30,
+    "maintenance_window_hours": 2
+  }
+}

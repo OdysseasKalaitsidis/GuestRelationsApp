@@ -2,6 +2,7 @@ import os
 import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.document_service import process_document
 from services.ai_service import suggest_feedback
 from services.case_service import bulk_create_cases
@@ -50,7 +51,7 @@ class CompleteWorkflowResponse(BaseModel):
 import time
 
 @router.post("/upload", response_model=DocumentUploadResponse)
-async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_document(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     """
     Upload a PDF or DOCX file, process it, and return structured cases as JSON.
     This endpoint now automatically clears existing data before processing the new document.
@@ -70,7 +71,7 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
         
         try:
             # Clear data in background (non-blocking)
-            clear_all_data(db)
+            await clear_all_data(db)
         except Exception as clear_error:
             print(f"Warning: Could not clear existing data: {clear_error}")
             # Continue with upload even if clearing fails
@@ -121,7 +122,7 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
 @router.post("/workflow", response_model=CompleteWorkflowResponse)
 async def complete_workflow(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     create_cases: bool = True
 ):
     """
@@ -133,7 +134,7 @@ async def complete_workflow(
         # Step 0: Clear all previous data
         from services.daily_service import clear_all_data
         
-        clear_result = clear_all_data(db)
+        clear_result = await clear_all_data(db)
         steps.append(WorkflowStep(
             step="Data Clearance",
             status="success",
@@ -246,7 +247,7 @@ async def complete_workflow(
                 
                 case_objects.append(case_obj)
             
-            created_cases = bulk_create_cases(db, case_objects)
+            created_cases = await bulk_create_cases(db, case_objects)
         steps.append(WorkflowStep(
             step="Case Creation",
             status="success",
@@ -264,7 +265,7 @@ async def complete_workflow(
                         suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available"),
                         status="pending"
                     )
-                    create_followup(db, followup_data)
+                    await create_followup(db, followup_data)
                     followups_created += 1
         
         steps.append(WorkflowStep(
@@ -297,13 +298,13 @@ async def complete_workflow(
 
 # Clear all data endpoint
 @router.post("/clear-all-data")
-async def clear_all_data_endpoint(db: Session = Depends(get_db)):
+async def clear_all_data_endpoint(db: AsyncSession = Depends(get_db)):
     """
     Clear all data from the database - cases, followups, and tasks
     """
     try:
         from services.daily_service import clear_all_data
-        result = clear_all_data(db)
+        result = await clear_all_data(db)
         return {
             "message": "All data cleared successfully",
             "details": result

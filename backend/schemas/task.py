@@ -31,7 +31,7 @@ class TaskResponse(BaseModel):
     completed_at: Optional[str] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class TaskWithUser(TaskResponse):
     assigned_user_name: Optional[str] = None

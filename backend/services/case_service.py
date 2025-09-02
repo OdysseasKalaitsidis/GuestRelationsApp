@@ -1,13 +1,15 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models import Case
 from schemas.case import CaseCreate, CaseUpdate
 from typing import List, Dict, Any, Optional
 
 # Create a single case
-def create_case(db: Session, case: CaseCreate) -> Case:
+async def create_case(db: AsyncSession, case: CaseCreate) -> Case:
     try:
         # Filter out fields that might not exist in the database yet
-        case_data = case.model_dump()
+        case_data = case.dict()
         safe_fields = ['room', 'status', 'importance', 'type', 'title', 'action', 'owner_id']
         
         # Only include fields that exist in the current database schema
@@ -15,63 +17,65 @@ def create_case(db: Session, case: CaseCreate) -> Case:
         
         db_case = Case(**filtered_data)
         db.add(db_case)
-        db.commit()
-        db.refresh(db_case)
+        await db.commit()
+        await db.refresh(db_case)
         return db_case
     except Exception as e:
         print(f"Error creating case: {e}")
-        db.rollback()
+        await db.rollback()
         raise
 
 # Bulk create multiple cases
-def bulk_create_cases(db: Session, cases: List[CaseCreate]) -> List[Case]:
+async def bulk_create_cases(db: AsyncSession, cases: List[CaseCreate]) -> List[Case]:
     try:
         safe_fields = ['room', 'status', 'importance', 'type', 'title', 'action', 'owner_id']
         db_cases = []
         
         for c in cases:
-            case_data = c.model_dump()
+            case_data = c.dict()
             # Only include fields that exist in the current database schema
             filtered_data = {k: v for k, v in case_data.items() if k in safe_fields and v is not None}
             db_case = Case(**filtered_data)
             db_cases.append(db_case)
         
         db.add_all(db_cases)
-        db.commit()
+        await db.commit()
         for c in db_cases:
-            db.refresh(c)
+            await db.refresh(c)
         return db_cases
     except Exception as e:
         print(f"Error bulk creating cases: {e}")
-        db.rollback()
+        await db.rollback()
         raise
 
 # Retrieve all cases
-def get_cases(db: Session) -> List[Case]:
+async def get_cases(db: AsyncSession) -> List[Case]:
     try:
-        cases = db.query(Case).all()
-        return cases
+        result = await db.execute(select(Case))
+        return result.scalars().all()
     except Exception as e:
         print(f"Error retrieving cases: {e}")
         return []
 
 # Retrieve a single case by ID
-def get_case_by_id(db: Session, case_id: int) -> Case:
+async def get_case_by_id(db: AsyncSession, case_id: int) -> Case:
     try:
-        return db.query(Case).filter(Case.id == case_id).first()
+        result = await db.execute(select(Case).filter(Case.id == case_id))
+        return result.scalars().first()
     except Exception as e:
         print(f"Error retrieving case {case_id}: {e}")
         return None
 
 # Update a case
-def update_case(db: Session, case_id: int, case_update: CaseUpdate) -> Optional[Case]:
+async def update_case(db: AsyncSession, case_id: int, case_update: CaseUpdate) -> Optional[Case]:
     """Update a case by ID"""
     try:
-        db_case = db.query(Case).filter(Case.id == case_id).first()
+        result = await db.execute(select(Case).filter(Case.id == case_id))
+        db_case = result.scalars().first()
         if not db_case:
             return None
         
-        update_data = case_update.model_dump(exclude_unset=True)
+        update_data = case_update.dict(exclude_unset=True)
         safe_fields = ['room', 'status', 'importance', 'type', 'title', 'action', 'owner_id']
         
         # Only update fields that exist in the current database schema
@@ -79,23 +83,24 @@ def update_case(db: Session, case_id: int, case_update: CaseUpdate) -> Optional[
             if field in safe_fields and hasattr(db_case, field):
                 setattr(db_case, field, value)
         
-        db.commit()
-        db.refresh(db_case)
+        await db.commit()
+        await db.refresh(db_case)
         return db_case
     except Exception as e:
         print(f"Error updating case {case_id}: {e}")
-        db.rollback()
+        await db.rollback()
         return None
 
 # Retrieve cases with their followups
-def get_cases_with_followups(db: Session) -> List[Dict[str, Any]]:
+async def get_cases_with_followups(db: AsyncSession) -> List[Dict[str, Any]]:
     """Get all cases with their associated followups using eager loading"""
     try:
         # Use eager loading to fetch cases and followups in one query
-        from sqlalchemy.orm import joinedload
-        cases = db.query(Case).options(joinedload(Case.followups)).all()
-        result = []
+        from sqlalchemy.orm import selectinload
+        result = await db.execute(select(Case).options(selectinload(Case.followups)))
+        cases = result.scalars().all()
         
+        case_data_list = []
         for case in cases:
             case_data = {
                 "id": case.id,
@@ -133,15 +138,16 @@ def get_cases_with_followups(db: Session) -> List[Dict[str, Any]]:
                 print(f"Warning: Could not load followups for case {case.id}: {e}")
                 case_data["followups"] = []
             
-            result.append(case_data)
+            case_data_list.append(case_data)
         
-        return result
+        return case_data_list
         
     except Exception as e:
         print(f"Error in get_cases_with_followups: {e}")
         # Return basic case data without followups if there's an error
         try:
-            cases = db.query(Case).all()
+            result = await db.execute(select(Case))
+            cases = result.scalars().all()
             return [{
                 "id": case.id,
                 "room": getattr(case, 'room', None),

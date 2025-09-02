@@ -1,27 +1,30 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, text
 from models import Case, Followup, Task
 from typing import List
 from datetime import date, datetime
 
-def clear_all_data(db: Session) -> dict:
+async def clear_all_data(db: AsyncSession) -> dict:
     """Clear all data from the database - cases, followups, and tasks"""
     try:
-        # Use raw SQL for faster bulk deletion
-        # This bypasses ORM overhead and foreign key checks during deletion
-        from sqlalchemy import text
+        # For PostgreSQL, we need to handle foreign key constraints differently
+        # Delete in the correct order to respect foreign key constraints
         
-        db.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        # First, delete followups (they reference cases)
+        followups_result = await db.execute(text("DELETE FROM followups"))
+        followups_deleted = followups_result.rowcount
         
-        # Bulk delete all tables at once
-        followups_deleted = db.execute(text("DELETE FROM followups")).rowcount
-        tasks_deleted = db.execute(text("DELETE FROM tasks")).rowcount
-        cases_deleted = db.execute(text("DELETE FROM cases")).rowcount
+        # Then delete tasks (they reference users)
+        tasks_result = await db.execute(text("DELETE FROM tasks"))
+        tasks_deleted = tasks_result.rowcount
         
-        # Re-enable foreign key checks
-        db.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        # Finally delete cases (they reference users)
+        cases_result = await db.execute(text("DELETE FROM cases"))
+        cases_deleted = cases_result.rowcount
         
         # Single commit for all operations
-        db.commit()
+        await db.commit()
         
         return {
             "cases_deleted": cases_deleted,
@@ -30,15 +33,16 @@ def clear_all_data(db: Session) -> dict:
             "message": f"Cleared {cases_deleted} cases, {followups_deleted} followups, and {tasks_deleted} tasks"
         }
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise Exception(f"Error clearing data: {str(e)}")
 
-def reset_daily_cases(db: Session) -> dict:
+async def reset_daily_cases(db: AsyncSession) -> dict:
     """Reset cases for a new day - archive current cases and create fresh ones"""
     today = date.today().strftime("%Y-%m-%d")
     
     # Get all current cases
-    current_cases = db.query(Case).all()
+    result = await db.execute(select(Case))
+    current_cases = result.scalars().all()
     
     # Archive current cases by updating their status
     archived_count = 0
@@ -47,11 +51,13 @@ def reset_daily_cases(db: Session) -> dict:
         archived_count += 1
     
     # Get all current followups (no status changes needed)
-    current_followups = db.query(Followup).all()
+    followups_result = await db.execute(select(Followup))
+    current_followups = followups_result.scalars().all()
     completed_followups = len(current_followups)
     
     # Get all current tasks and mark as completed
-    current_tasks = db.query(Task).all()
+    tasks_result = await db.execute(select(Task))
+    current_tasks = tasks_result.scalars().all()
     completed_tasks = 0
     for task in current_tasks:
         if task.status != "completed":
@@ -59,7 +65,7 @@ def reset_daily_cases(db: Session) -> dict:
             task.completed_at = today
             completed_tasks += 1
     
-    db.commit()
+    await db.commit()
     
     return {
         "archived_cases": archived_count,

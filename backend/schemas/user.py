@@ -18,7 +18,7 @@ class UserResponse(BaseModel):
     is_admin: bool
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # Schema for updating user info
 class UserUpdate(BaseModel):

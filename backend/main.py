@@ -5,11 +5,9 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
-from sqlalchemy import text
 from logging_config import setup_logging
 from routers import auth_route, user_router, task_router, document_router, followup_router, case_router, anonymization_router
 from test_router import router as test_router
-from db import initialize_database, get_engine
 
 # Load environment variables
 load_dotenv()
@@ -69,16 +67,15 @@ if ENVIRONMENT == "production":
 @app.on_event("startup")
 async def startup_event():
     try:
-        if initialize_database():
-            logger.info("✅ Database connection initialized successfully")
-            engine = get_engine()
-            with engine.connect() as conn:
-                result = conn.execute(text("SELECT 1"))
-                logger.info(f"✅ MySQL test query returned: {result.scalar()}")
+        from db import initialize_database, test_connection
+        initialize_database()  # make sure engine + session are created
+        success = await test_connection()
+        if success:
+            logger.info("Database connection test successful")
         else:
-            logger.warning("⚠️ MySQL environment variables not found - database features unavailable")
+            logger.warning("[!] Database connection test failed")
     except Exception as e:
-        logger.error(f"❌ Database initialization failed: {e}")
+        logger.error(f"Database initialization failed: {e}")
 
 # Routers
 app.include_router(test_router, prefix="/api", tags=["Test"])
@@ -104,7 +101,7 @@ def api_health_check():
     return {
         "status": "healthy",
         "environment": ENVIRONMENT,
-        "database": "available" if os.environ.get("MYSQLUSER") else "unavailable"
+        "database": "available" if os.environ.get("DATABASE_URL") else "unavailable"
     }
 
 @app.post("/api/auth/login-fallback")
