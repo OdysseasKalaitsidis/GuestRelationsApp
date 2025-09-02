@@ -28,18 +28,31 @@ def install_spacy_model():
             print(f"Error output: {e.stderr}")
             return False
 
-def test_supabase_connectivity():
-    """Test Supabase network connectivity"""
+def test_database_connectivity():
+    """Test database connectivity using Supabase client"""
     try:
-        from supabase_client import test_network_connectivity
+        from supabase_client import test_network_connectivity, test_supabase_connection
+        import asyncio
+        
+        print("\n🔌 Testing database connectivity...")
+        
+        # Test network connectivity first
         if test_network_connectivity():
-            print("✅ Supabase network connectivity test passed")
+            print("✅ Network connectivity test passed")
+        else:
+            print("❌ Network connectivity test failed")
+            return False
+        
+        # Test Supabase connection
+        if asyncio.run(test_supabase_connection()):
+            print("✅ Supabase connection test passed")
             return True
         else:
-            print("❌ Supabase network connectivity test failed")
+            print("❌ Supabase connection test failed")
             return False
+            
     except Exception as e:
-        print(f"⚠️ Warning: Could not test Supabase connectivity: {e}")
+        print(f"⚠️ Warning: Could not test database connectivity: {e}")
         return False
 
 def main():
@@ -50,9 +63,9 @@ def main():
     if not install_spacy_model():
         print("⚠️ Warning: spaCy model installation failed. Some AI features may not work.")
     
-    # Test Supabase connectivity
-    if not test_supabase_connectivity():
-        print("⚠️ Warning: Supabase connectivity test failed. Database operations may not work.")
+    # Test database connectivity
+    if not test_database_connectivity():
+        print("⚠️ Warning: Database connectivity test failed. Some features may not work.")
     
     # Start the application
     print("🎯 Starting uvicorn server...")

@@ -40,10 +40,10 @@ for origin in allowed_origins:
     if origin and origin not in origins:
         origins.append(origin)
 
-# Add Railway public domain if available
-railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-if railway_domain and f"https://{railway_domain}" not in origins:
-    origins.append(f"https://{railway_domain}")
+# Add Render public domain if available
+render_domain = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if render_domain and f"https://{render_domain}" not in origins:
+    origins.append(f"https://{render_domain}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,24 +58,33 @@ logger.info(f"CORS origins configured: {origins}")
 # Trusted host middleware
 if ENVIRONMENT == "production":
     allowed_hosts = ["*"]
-    if railway_domain:
-        allowed_hosts.append(railway_domain)
-        allowed_hosts.append(f"*.{railway_domain}")
+    if render_domain:
+        allowed_hosts.append(render_domain)
+        allowed_hosts.append(f"*.{render_domain}")
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     try:
-        from db import initialize_database, test_connection
-        initialize_database()  # make sure engine + session are created
-        success = await test_connection()
-        if success:
-            logger.info("Database connection test successful")
+        # Initialize Supabase client instead of SQLAlchemy
+        from supabase_client import initialize_supabase, test_supabase_connection
+        
+        # Initialize Supabase client
+        if initialize_supabase():
+            logger.info("Supabase client initialized successfully")
+            
+            # Test connection
+            success = await test_supabase_connection()
+            if success:
+                logger.info("Supabase connection test successful")
+            else:
+                logger.warning("[!] Supabase connection test failed")
         else:
-            logger.warning("[!] Database connection test failed")
+            logger.warning("[!] Supabase client initialization failed")
+            
     except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
+        logger.error(f"Supabase initialization failed: {e}")
 
 # Routers
 app.include_router(test_router, prefix="/api", tags=["Test"])
@@ -101,7 +110,7 @@ def api_health_check():
     return {
         "status": "healthy",
         "environment": ENVIRONMENT,
-        "database": "available" if os.environ.get("DATABASE_URL") else "unavailable"
+        "database": "available" if os.environ.get("SUPABASE_URL") else "unavailable"
     }
 
 @app.post("/api/auth/login-fallback")

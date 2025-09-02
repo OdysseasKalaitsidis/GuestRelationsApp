@@ -1,8 +1,8 @@
 // Environment configuration
-const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://guestrelationsapp-production.up.railway.app/api');
+const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://guestrelationsapp.onrender.com/api');
 
-// Internal Railway domain for service-to-service communication
-const INTERNAL_API_URL = 'https://guestrelationsapp.railway.internal/api';
+// Internal Render domain for service-to-service communication
+const INTERNAL_API_URL = 'https://guestrelationsapp.onrender.com/api';
 
 // Helper function to get the appropriate API URL
 const getApiUrl = (useInternal = false) => {
