@@ -1,5 +1,5 @@
 // Environment configuration
-const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://guestrelationsapp.onrender.com/api');
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://guestrelationsapp.onrender.com/api';
 
 // Internal Render domain for service-to-service communication
 const INTERNAL_API_URL = 'https://guestrelationsapp.onrender.com/api';
