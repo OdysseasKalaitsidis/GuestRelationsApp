@@ -28,6 +28,20 @@ def install_spacy_model():
             print(f"Error output: {e.stderr}")
             return False
 
+def test_supabase_connectivity():
+    """Test Supabase network connectivity"""
+    try:
+        from supabase_client import test_network_connectivity
+        if test_network_connectivity():
+            print("✅ Supabase network connectivity test passed")
+            return True
+        else:
+            print("❌ Supabase network connectivity test failed")
+            return False
+    except Exception as e:
+        print(f"⚠️ Warning: Could not test Supabase connectivity: {e}")
+        return False
+
 def main():
     """Main startup function"""
     print("🚀 Starting Guest Relations API...")
@@ -35,6 +49,10 @@ def main():
     # Install spaCy model if needed
     if not install_spacy_model():
         print("⚠️ Warning: spaCy model installation failed. Some AI features may not work.")
+    
+    # Test Supabase connectivity
+    if not test_supabase_connectivity():
+        print("⚠️ Warning: Supabase connectivity test failed. Database operations may not work.")
     
     # Start the application
     print("🎯 Starting uvicorn server...")
