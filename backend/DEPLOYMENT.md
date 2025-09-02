@@ -7,7 +7,7 @@ Python 3.12 removed `distutils` entirely, which causes deployment failures when 
 ## Solutions Implemented
 
 ### 1. Python Version Lock
-- **Current**: Python 3.11.18 (stable, has distutils)
+- **Current**: Python 3.11.7 (stable, has distutils)
 - **Files**: `nixpacks.json`, `runtime.txt`, `.python-version`
 
 ### 2. Package Version Optimization
@@ -72,7 +72,7 @@ pip install --only-binary=all -r requirements.txt
 ## Environment Variables
 
 Key environment variables set in deployment:
-- `PYTHON_VERSION=3.11.18`
+- `PYTHON_VERSION=3.11.7`
 - `PIP_PREFER_BINARY=1`
 - `PIP_NO_CACHE_DIR=1`
 - `PYTHONUNBUFFERED=1`
@@ -80,7 +80,7 @@ Key environment variables set in deployment:
 ## Monitoring Deployment
 
 Watch for these success indicators:
-1. Python 3.11.18 detected
+1. Python 3.11.7 detected
 2. Virtual environment created successfully
 3. Packages installed from pre-built wheels
 4. No compilation errors
