@@ -4,7 +4,7 @@ set -e
 echo "Setting up Python environment..."
 
 # Create virtual environment
-python3.12 -m venv --copies /opt/venv
+python3.11 -m venv --copies /opt/venv
 source /opt/venv/bin/activate
 
 # Upgrade pip and install build tools

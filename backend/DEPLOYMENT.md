@@ -7,11 +7,11 @@ Python 3.12 removed `distutils` entirely, which causes deployment failures when 
 ## Solutions Implemented
 
 ### 1. Python Version Lock
-- **Current**: Python 3.12.0 (stable, has distutils)
+- **Current**: Python 3.11.18 (stable, has distutils)
 - **Files**: `nixpacks.json`, `runtime.txt`, `.python-version`
 
 ### 2. Package Version Optimization
-- **Current**: `requirements.txt` with Python 3.12 compatible versions
+- **Current**: `requirements.txt` with Python 3.11 compatible versions
 - **Fallback**: `requirements-conservative.txt` with very stable versions
 - **Strategy**: Use versions with pre-built wheels to avoid compilation
 
@@ -51,7 +51,7 @@ pip install --only-binary=all -r requirements.txt
 ## Common Issues & Solutions
 
 ### Issue: "distutils not found"
-**Solution**: Ensure Python 3.12 is used (not 3.11)
+**Solution**: Ensure Python 3.11 is used (not 3.12)
 
 ### Issue: "Failed to build wheel"
 **Solution**: Use `--only-binary=all` flag or update package versions
@@ -64,15 +64,15 @@ pip install --only-binary=all -r requirements.txt
 
 ## Package-Specific Notes
 
-- **scikit-learn**: Version 1.2.2 has pre-built wheels for Python 3.12
+- **scikit-learn**: Version 1.2.2 has pre-built wheels for Python 3.11
 - **numpy**: Version 1.23.5 is stable and widely supported
-- **spacy**: Version 3.5.3 works well with Python 3.12
+- **spacy**: Version 3.5.3 works well with Python 3.11
 - **fastapi**: Version 0.104.1 is current and stable
 
 ## Environment Variables
 
 Key environment variables set in deployment:
-- `PYTHON_VERSION=3.12.0`
+- `PYTHON_VERSION=3.11.18`
 - `PIP_PREFER_BINARY=1`
 - `PIP_NO_CACHE_DIR=1`
 - `PYTHONUNBUFFERED=1`
@@ -80,7 +80,7 @@ Key environment variables set in deployment:
 ## Monitoring Deployment
 
 Watch for these success indicators:
-1. Python 3.12.0 detected
+1. Python 3.11.18 detected
 2. Virtual environment created successfully
 3. Packages installed from pre-built wheels
 4. No compilation errors
