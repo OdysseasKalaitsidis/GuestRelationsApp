@@ -343,7 +343,21 @@ export const resetDailyCases = async () => {
   return res.json();
 };
 
-
+// Clear All Data
+export const clearAllData = async () => {
+  const res = await fetch(`${BASE_URL}/documents/clear-all-data`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Failed to clear all data: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
 
 // Case Management
 export const updateCaseStatus = async (caseId, status) => {
