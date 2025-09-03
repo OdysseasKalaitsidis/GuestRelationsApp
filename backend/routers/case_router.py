@@ -31,12 +31,24 @@ class CaseInputResponse(BaseModel):
 @router.post("/", response_model=CaseResponse)
 async def create_single_case(case: CaseCreate, db_service = Depends(get_db_service)):
     """Create a single case"""
-    return await create_case(case)
+    try:
+        result = await create_case(case)
+        if result is None:
+            raise HTTPException(status_code=500, detail="Failed to create case")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating case: {str(e)}")
 
 @router.post("/bulk", response_model=List[CaseResponse])
 async def create_multiple_cases(cases: List[CaseCreate], db_service = Depends(get_db_service)):
     """Create multiple cases at once"""
-    return await bulk_create_cases(cases)
+    try:
+        result = await bulk_create_cases(cases)
+        if result is None:
+            raise HTTPException(status_code=500, detail="Failed to create cases")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating multiple cases: {str(e)}")
 
 @router.post("/manual", response_model=CaseInputResponse)
 async def create_manual_case(

@@ -41,11 +41,11 @@ async def create_case(case: CaseCreate) -> Optional[Dict[str, Any]]:
             return result
         else:
             logger.error("Failed to create case: No data returned")
-            return None
+            raise Exception("Failed to create case: No data returned")
             
     except Exception as e:
-        logger.error(f"Error creating case: {e}")
-        return None
+        logger.error(f"Error creating case: {e}", exc_info=True)
+        raise Exception(f"Case creation failed: {str(e)}")
 
 async def bulk_create_cases(cases: List[CaseCreate]) -> List[Dict[str, Any]]:
     """Create multiple cases at once"""
@@ -77,13 +77,16 @@ async def bulk_create_cases(cases: List[CaseCreate]) -> List[Dict[str, Any]]:
             result = await db_service.create("cases", case_data)
             if result:
                 created_cases.append(result)
+            else:
+                logger.error(f"Failed to create case: {case.title}")
+                # Continue with other cases instead of failing completely
         
         logger.info(f"Bulk created {len(created_cases)} cases")
         return created_cases
         
     except Exception as e:
-        logger.error(f"Error bulk creating cases: {e}")
-        return []
+        logger.error(f"Error bulk creating cases: {e}", exc_info=True)
+        raise Exception(f"Bulk case creation failed: {str(e)}")
 
 async def get_cases() -> List[Dict[str, Any]]:
     """Get all cases"""
