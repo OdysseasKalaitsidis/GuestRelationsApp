@@ -63,7 +63,33 @@ export default function FollowupsPage() {
     }
   };
 
+  // Helper function to get room information
+  const getRoomInfo = (followup) => {
+    // First try to get room from the followup itself
+    if (followup.room) {
+      return followup.room;
+    }
+    
+    // Then try to get room from the associated case
+    if (followup.cases && followup.cases.room) {
+      return followup.cases.room;
+    }
+    
+    // Finally, show case ID if no room is available
+    if (followup.case_id) {
+      return `Case ID: ${followup.case_id}`;
+    }
+    
+    return 'N/A';
+  };
 
+  // Helper function to get case title
+  const getCaseTitle = (followup) => {
+    if (followup.cases && followup.cases.title) {
+      return followup.cases.title;
+    }
+    return 'No title available';
+  };
 
   if (loading) {
     return (
@@ -115,12 +141,14 @@ export default function FollowupsPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Room
+                Room/Case ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Case Title
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Suggestion
               </th>
-
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Assigned To
               </th>
@@ -133,7 +161,10 @@ export default function FollowupsPage() {
             {followups.map((followup) => (
               <tr key={followup.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {followup.room || 'N/A'}
+                  {getRoomInfo(followup)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {getCaseTitle(followup)}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
                   {editingId === followup.id ? (
