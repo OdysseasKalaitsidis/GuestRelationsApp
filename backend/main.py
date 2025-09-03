@@ -31,7 +31,8 @@ app = FastAPI(
 
 # CORS origins
 origins = [
-    "https://guestreationadomes.netlify.app",
+    "https://docguestrelations.netlify.app",  # Updated frontend domain
+    "https://guestreationadomes.netlify.app",  # Keep old domain for backward compatibility
     "http://localhost:5173"
 ]
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
@@ -46,7 +47,7 @@ if render_domain and f"https://{render_domain}" not in origins:
     origins.append(f"https://{render_domain}")
 
 # Add the frontend domain explicitly
-frontend_domain = "https://guestreationadomes.netlify.app"
+frontend_domain = "https://docguestrelations.netlify.app"  # Updated frontend domain
 if frontend_domain not in origins:
     origins.append(frontend_domain)
 
