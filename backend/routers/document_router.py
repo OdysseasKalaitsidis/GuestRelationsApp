@@ -69,20 +69,33 @@ async def upload_document(file: UploadFile = File(...)):
     
     try:
         # Step 0: Clear all previous data before processing new document
-        from services.daily_service_supabase import clear_all_data
+        from services.daily_service_supabase import clear_all_data, verify_data_cleared
         
         try:
-            # Clear data in background (non-blocking)
+            # Clear data and wait for completion
             clear_result = await clear_all_data()
             print(f"✅ Data cleared successfully: {clear_result['message']}")
             
+            # Wait a moment for database to settle
+            import asyncio
+            await asyncio.sleep(1)
+            
             # Verify data is actually cleared
-            from services.daily_service_supabase import verify_data_cleared
             verification = await verify_data_cleared()
             if verification['is_cleared']:
                 print(f"✅ Verification passed: Database is empty")
             else:
                 print(f"⚠️ Warning: {verification['message']}")
+                # If verification fails, try clearing again
+                if verification['total_remaining'] > 0:
+                    print(f"🔄 Retrying data clearance...")
+                    await clear_all_data()
+                    await asyncio.sleep(1)
+                    verification = await verify_data_cleared()
+                    if verification['is_cleared']:
+                        print(f"✅ Second clearance attempt successful")
+                    else:
+                        print(f"❌ Failed to clear data after retry: {verification['message']}")
         except Exception as clear_error:
             print(f"⚠️ Warning: Could not clear existing data: {clear_error}")
             # Continue with upload even if clearing fails
@@ -142,7 +155,7 @@ async def complete_workflow(
     
     try:
         # Step 0: Clear all previous data
-        from services.daily_service_supabase import clear_all_data
+        from services.daily_service_supabase import clear_all_data, verify_data_cleared
         
         clear_result = await clear_all_data()
         steps.append(WorkflowStep(
@@ -152,8 +165,11 @@ async def complete_workflow(
             data=clear_result
         ))
         
+        # Wait a moment for database to settle
+        import asyncio
+        await asyncio.sleep(1)
+        
         # Verify data is actually cleared
-        from services.daily_service_supabase import verify_data_cleared
         verification = await verify_data_cleared()
         if verification['is_cleared']:
             steps.append(WorkflowStep(
@@ -163,12 +179,40 @@ async def complete_workflow(
                 data=verification
             ))
         else:
-            steps.append(WorkflowStep(
-                step="Data Verification",
-                status="warning",
-                message=f"Warning: {verification['message']}",
-                data=verification
-            ))
+            # If verification fails, try clearing again
+            if verification['total_remaining'] > 0:
+                steps.append(WorkflowStep(
+                    step="Data Retry",
+                    status="warning",
+                    message=f"Retrying data clearance - {verification['message']}",
+                    data=verification
+                ))
+                
+                await clear_all_data()
+                await asyncio.sleep(1)
+                verification = await verify_data_cleared()
+                
+                if verification['is_cleared']:
+                    steps.append(WorkflowStep(
+                        step="Data Verification",
+                        status="success",
+                        message="Database verified empty after retry - ready for new data",
+                        data=verification
+                    ))
+                else:
+                    steps.append(WorkflowStep(
+                        step="Data Verification",
+                        status="error",
+                        message=f"Failed to clear data after retry: {verification['message']}",
+                        data=verification
+                    ))
+            else:
+                steps.append(WorkflowStep(
+                    step="Data Verification",
+                    status="warning",
+                    message=f"Warning: {verification['message']}",
+                    data=verification
+                ))
         
         # Step 1: Process PDF
         steps.append(WorkflowStep(

@@ -109,8 +109,18 @@ class DatabaseService:
             logger.error(f"Error getting user by email: {e}")
             return None
     
+    async def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get user by ID"""
+        try:
+            response = self.supabase.table("users").select("*").eq("id", user_id).execute()
+            result = self._handle_response(response, "Get user by ID")
+            return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Error getting user by ID: {e}")
+            return None
+
     async def get_cases_with_followups(self) -> List[Dict[str, Any]]:
-        """Get cases with their followups"""
+        """Get cases with their followups and user information"""
         try:
             # First get all cases
             cases_response = self.supabase.table("cases").select("*").execute()

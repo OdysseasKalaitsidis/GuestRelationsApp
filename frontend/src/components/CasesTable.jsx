@@ -77,6 +77,9 @@ export default function CasesTable({ cases, onCaseUpdate }) {
               Status
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              Assignee
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
               Importance
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
@@ -84,6 +87,9 @@ export default function CasesTable({ cases, onCaseUpdate }) {
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
               Title
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              Description
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
               Action
@@ -118,6 +124,9 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                     <option value="rejected">Rejected</option>
                   </select>
                 </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                  {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>
                     {caseItem.importance || 'N/A'}
@@ -128,6 +137,9 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
                   {caseItem.title || 'N/A'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                  {caseItem.case_description || caseItem.action || 'N/A'}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
                   {caseItem.action || 'N/A'}
@@ -150,7 +162,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
               {/* Expanded row showing followups */}
               {expandedRows.has(caseItem.id) && caseItem.followups && caseItem.followups.length > 0 && (
                 <tr>
-                  <td colSpan="8" className="px-4 py-3 bg-gray-50">
+                  <td colSpan="10" className="px-4 py-3 bg-gray-50">
                     <div className="space-y-3">
                       <h4 className="font-medium text-gray-900">Followups:</h4>
                       <div className="grid gap-3">

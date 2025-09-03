@@ -109,10 +109,18 @@ async def get_case_by_id(case_id: int) -> Optional[Dict[str, Any]]:
         return None
 
 async def get_cases_with_followups() -> List[Dict[str, Any]]:
-    """Get all cases with their associated followups"""
+    """Get all cases with their associated followups and user information"""
     try:
         db_service = await get_db_service()
         cases_with_followups = await db_service.get_cases_with_followups()
+        
+        # Fetch user information for cases that have owner_id
+        for case in cases_with_followups:
+            if case.get("owner_id"):
+                user = await db_service.get_user_by_id(case["owner_id"])
+                if user:
+                    case["users"] = user
+        
         return cases_with_followups
     except Exception as e:
         logger.error(f"Error getting cases with followups: {e}")
