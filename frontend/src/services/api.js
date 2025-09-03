@@ -452,38 +452,39 @@ export const updateCaseStatus = async (caseId, status) => {
   return res.json();
 };
 
-// Training Documents
-export const getTrainingDocuments = async () => {
-  const res = await fetch(`${BASE_URL}/training/documents`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to fetch training documents: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
+// Remove unused endpoints that don't exist in the backend
+// Training Documents - REMOVED (endpoint doesn't exist)
+// export const getTrainingDocuments = async () => {
+//   const res = await fetch(`${BASE_URL}/training/documents`, {
+//     headers: {
+//       ...getAuthHeaders(),
+//     },
+//   });
+//   
+//   if (!res.ok) {
+//     throw new Error(`Failed to fetch training documents: ${res.statusText}`);
+//   }
+//   
+//   return res.json();
+// };
 
-// Email AI Assistant
-export const chatWithEmailAssistant = async (emailContent) => {
-  const res = await fetch(`${BASE_URL}/chat/email-assistant`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify({ email_content: emailContent }),
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to get AI response: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
+// Email AI Assistant - REMOVED (endpoint doesn't exist)
+// export const chatWithEmailAssistant = async (emailContent) => {
+//   const res = await fetch(`${BASE_URL}/chat/email-assistant`, {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//       ...getAuthHeaders(),
+//     },
+//     body: JSON.stringify({ email_content: emailContent }),
+//   });
+//   
+//   if (!res.ok) {
+//     throw new Error(`Failed to get AI response: ${res.statusText}`);
+//   }
+//   
+//   return res.json();
+// };
 
 // Internal API functions for service-to-service communication
 export const internalHealthCheck = async () => {

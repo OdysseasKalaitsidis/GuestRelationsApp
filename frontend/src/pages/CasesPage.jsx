@@ -12,12 +12,13 @@ const CasesPage = () => {
   const loadCases = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const data = await fetchCasesWithFollowups();
       setCases(data);
-      setError(null);
     } catch (err) {
       console.error('Failed to load cases:', err);
-      setError('Failed to load cases. Please try again.');
+      setError(`Failed to load cases: ${err.message}`);
     } finally {
       setLoading(false);
     }
