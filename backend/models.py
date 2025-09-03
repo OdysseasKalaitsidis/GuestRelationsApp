@@ -19,8 +19,6 @@ class User(Base):
     # Relationships
     cases = relationship("Case", back_populates="owner")
     followups = relationship("Followup", back_populates="assigned_user")
-    assigned_tasks = relationship("Task", foreign_keys="Task.assigned_to", back_populates="assigned_user")
-    created_tasks = relationship("Task", foreign_keys="Task.assigned_by", back_populates="assigner")
     uploaded_documents = relationship("Document", back_populates="uploader")
 
 class Case(Base):
@@ -64,25 +62,6 @@ class Followup(Base):
     # Relationships
     case = relationship("Case", back_populates="followups")
     assigned_user = relationship("User", back_populates="followups")
-
-# Task model for daily tasks
-class Task(Base):
-    __tablename__ = "tasks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    task_type = Column(String(50), nullable=False)  # amenity_list, emails, courtesy_calls
-    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
-    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    due_date = Column(String(50), nullable=False)  # YYYY-MM-DD format
-    status = Column(String(50), default="pending")  # pending, in_progress, completed
-    created_at = Column(String(50), nullable=False)  # YYYY-MM-DD format
-    completed_at = Column(String(50), nullable=True)
-
-    # Relationships
-    assigned_user = relationship("User", foreign_keys=[assigned_to], back_populates="assigned_tasks")
-    assigner = relationship("User", foreign_keys=[assigned_by], back_populates="created_tasks")
 
 # Document model for RAG system
 class Document(Base):

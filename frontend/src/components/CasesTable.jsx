@@ -1,19 +1,14 @@
 import React, { useState } from "react";
 import { updateCaseStatus } from "../services/api";
+import CaseDetailsModal from "./CaseDetailsModal";
 
 export default function CasesTable({ cases, onCaseUpdate }) {
-  const [expandedRows, setExpandedRows] = useState(new Set());
   const [updatingStatus, setUpdatingStatus] = useState(new Set());
-
-  const toggleRow = (caseId) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(caseId)) {
-      newExpanded.delete(caseId);
-    } else {
-      newExpanded.add(caseId);
-    }
-    setExpandedRows(newExpanded);
-  };
+  const [detailsModal, setDetailsModal] = useState({
+    isOpen: false,
+    caseData: null,
+    detailType: null
+  });
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -57,6 +52,22 @@ export default function CasesTable({ cases, onCaseUpdate }) {
     }
   };
 
+  const openDetailsModal = (caseData, detailType) => {
+    setDetailsModal({
+      isOpen: true,
+      caseData,
+      detailType
+    });
+  };
+
+  const closeDetailsModal = () => {
+    setDetailsModal({
+      isOpen: false,
+      caseData: null,
+      detailType: null
+    });
+  };
+
   if (!cases || cases.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -67,7 +78,83 @@ export default function CasesTable({ cases, onCaseUpdate }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="min-w-full">
+        {/* Mobile/Tablet View */}
+        <div className="block xl:hidden">
+          {cases.map((caseItem) => (
+            <div key={caseItem.id} className="bg-white border border-gray-200 rounded-lg mb-4 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-900">Room {caseItem.room || 'N/A'}</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(caseItem.status)}`}>
+                    {caseItem.status || 'pending'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                <div>
+                  <span className="text-gray-500">Type:</span>
+                  <p className="text-gray-900">{caseItem.type || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">Importance:</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>
+                    {caseItem.importance || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Assignee:</span>
+                  <p className="text-gray-900">
+                    {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <span className="text-gray-500 text-sm">Description:</span>
+                  <button
+                    onClick={() => openDetailsModal(caseItem, 'description')}
+                    className="block w-full text-left text-gray-900 text-sm hover:text-blue-600 transition-colors truncate"
+                    title="Click to view full description"
+                  >
+                    {caseItem.case_description || caseItem.action || 'N/A'}
+                  </button>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-sm">Action:</span>
+                  <button
+                    onClick={() => openDetailsModal(caseItem, 'action')}
+                    className="block w-full text-left text-gray-900 text-sm hover:text-blue-600 transition-colors truncate"
+                    title="Click to view full action"
+                  >
+                    {caseItem.action || 'N/A'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <select
+                  value={caseItem.status || ''}
+                  onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
+                  disabled={updatingStatus.has(caseItem.id)}
+                  className={`text-xs font-semibold rounded-full border-0 px-2 py-1 ${getStatusColor(caseItem.status)} ${
+                    updatingStatus.has(caseItem.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View */}
+        <table className="hidden xl:table w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
@@ -86,119 +173,76 @@ export default function CasesTable({ cases, onCaseUpdate }) {
               Type
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Title
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
               Description
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
               Action
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Followups
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Actions
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {cases.map((caseItem) => (
-            <React.Fragment key={caseItem.id}>
-              <tr className="hover:bg-gray-50">
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {caseItem.room || 'N/A'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <select
-                    value={caseItem.status || ''}
-                    onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
-                    disabled={updatingStatus.has(caseItem.id)}
-                    className={`text-xs font-semibold rounded-full border-0 px-2 py-1 ${getStatusColor(caseItem.status)} ${
-                      updatingStatus.has(caseItem.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                    }`}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                  {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>
-                    {caseItem.importance || 'N/A'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                  {caseItem.type || 'N/A'}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
-                  {caseItem.title || 'N/A'}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+            <tr key={caseItem.id} className="hover:bg-gray-50">
+              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                {caseItem.room || 'N/A'}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                <select
+                  value={caseItem.status || ''}
+                  onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
+                  disabled={updatingStatus.has(caseItem.id)}
+                  className={`text-xs font-semibold rounded-full border-0 px-2 py-1 ${getStatusColor(caseItem.status)} ${
+                    updatingStatus.has(caseItem.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>
+                  {caseItem.importance || 'N/A'}
+                </span>
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                {caseItem.type || 'N/A'}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                <button
+                  onClick={() => openDetailsModal(caseItem, 'description')}
+                  className="text-left w-full hover:text-blue-600 transition-colors truncate block"
+                  title="Click to view full description"
+                >
                   {caseItem.case_description || caseItem.action || 'N/A'}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                </button>
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                <button
+                  onClick={() => openDetailsModal(caseItem, 'action')}
+                  className="text-left w-full hover:text-blue-600 transition-colors truncate block"
+                  title="Click to view full action"
+                >
                   {caseItem.action || 'N/A'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {caseItem.followups?.length || 0} followups
-                  </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                  <button
-                    onClick={() => toggleRow(caseItem.id)}
-                    className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                  >
-                    {expandedRows.has(caseItem.id) ? 'Hide' : 'Show'} Details
-                  </button>
-                </td>
-              </tr>
-              
-              {/* Expanded row showing followups */}
-              {expandedRows.has(caseItem.id) && caseItem.followups && caseItem.followups.length > 0 && (
-                <tr>
-                  <td colSpan="10" className="px-4 py-3 bg-gray-50">
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-gray-900">Followups:</h4>
-                      <div className="grid gap-3">
-                        {caseItem.followups.map((followup) => (
-                          <div key={followup.id} className="bg-white p-3 rounded-lg border border-gray-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-900 mb-1">
-                                  <span className="font-medium">Suggestion:</span> {followup.suggestion_text}
-                                </p>
-                                <div className="flex items-center gap-4 text-xs text-gray-500">
-                                  <span>
-                                    <span className="font-medium">Status:</span> 
-                                    <span className={`ml-1 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(followup.status)}`}>
-                                      {followup.status || 'pending'}
-                                    </span>
-                                  </span>
-                                  {followup.assigned_to && (
-                                    <span>
-                                      <span className="font-medium">Assigned to:</span> {followup.assigned_to}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </React.Fragment>
+                </button>
+              </td>
+            </tr>
           ))}
         </tbody>
       </table>
     </div>
-  );
+
+    {/* Details Modal */}
+    <CaseDetailsModal
+      isOpen={detailsModal.isOpen}
+      onClose={closeDetailsModal}
+      caseData={detailsModal.caseData}
+      detailType={detailsModal.detailType}
+    />
+  </div>
+);
 }

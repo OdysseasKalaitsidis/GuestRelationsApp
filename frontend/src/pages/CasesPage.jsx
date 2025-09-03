@@ -83,26 +83,26 @@ const CasesPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Cases Management</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">Cases Management</h1>
           <p className="text-gray-600">
-            View and manage all cases with their associated followups
+            View and manage all cases
           </p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full lg:w-auto">
           <button
             onClick={handleOpenUploadModal}
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2"
+            className="bg-blue-500 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2"
           >
             <span>📄</span>
             <span>Start New Workflow</span>
           </button>
           <button
             onClick={handleClearAllData}
-            className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
+            className="bg-red-500 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center space-x-2"
           >
             <span>🗑️</span>
             <span>Clear All Data</span>
@@ -111,7 +111,7 @@ const CasesPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -147,20 +147,6 @@ const CasesPage = () => {
               <p className="text-sm font-medium text-gray-600">Resolved</p>
               <p className="text-2xl font-bold text-gray-900">
                 {cases.filter(c => c.status === 'completed').length}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <span className="text-2xl">💬</span>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Followups</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {cases.reduce((total, c) => total + (c.followups?.length || 0), 0)}
               </p>
             </div>
           </div>

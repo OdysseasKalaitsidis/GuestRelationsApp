@@ -14,11 +14,18 @@ class DatabaseService:
     
     def _handle_response(self, response, operation: str):
         """Handle Supabase response and log results"""
-        if response.data is not None:
-            logger.info(f"{operation} successful")
-            return response.data
-        else:
-            logger.error(f"{operation} failed: {response.error if hasattr(response, 'error') else 'Unknown error'}")
+        try:
+            if response.data is not None:
+                logger.info(f"{operation} successful")
+                return response.data
+            else:
+                error_msg = response.error if hasattr(response, 'error') else 'Unknown error'
+                logger.error(f"{operation} failed: {error_msg}")
+                if hasattr(response, 'error'):
+                    logger.error(f"Supabase error details: {response.error}")
+                return None
+        except Exception as e:
+            logger.error(f"Error handling response for {operation}: {e}")
             return None
     
     # Generic CRUD operations
@@ -41,6 +48,16 @@ class DatabaseService:
             logger.error(f"Error creating record in {table}: {e}", exc_info=True)
             return None
     
+    async def get_by_field(self, table: str, field: str, value: Any) -> List[Dict[str, Any]]:
+        """Get records by field value"""
+        try:
+            response = self.supabase.table(table).select("*").eq(field, value).execute()
+            result = self._handle_response(response, f"Get by {field} from {table}")
+            return result or []
+        except Exception as e:
+            logger.error(f"Error getting records by {field} from {table}: {e}")
+            return []
+
     async def get_by_id(self, table: str, record_id: int) -> Optional[Dict[str, Any]]:
         """Get record by ID"""
         try:

@@ -327,95 +327,6 @@ export const getCurrentUserInfo = async () => {
   return res.json();
 };
 
-// Task Management
-export const fetchTasks = async () => {
-  const res = await fetch(`${BASE_URL}/tasks/`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  
-  return handleApiResponse(res);
-};
-
-export const createTask = async (taskData) => {
-  const res = await fetch(`${BASE_URL}/tasks/`, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify(taskData),
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Task creation failed: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
-
-export const createDailyTasks = async (taskDate) => {
-  const res = await fetch(`${BASE_URL}/tasks/daily?task_date=${taskDate}`, {
-    method: "POST",
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Daily tasks creation failed: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
-
-export const updateTask = async (taskId, taskData) => {
-  const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
-    method: "PUT",
-    headers: { 
-      "Content-Type": "application/json",
-      ...getAuthHeaders(),
-    },
-    body: JSON.stringify(taskData),
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Task update failed: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
-
-export const deleteTask = async (taskId) => {
-  const res = await fetch(`${BASE_URL}/tasks/${taskId}`, {
-    method: "DELETE",
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Task deletion failed: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
-
-export const getUserTasks = async (userId) => {
-  const res = await fetch(`${BASE_URL}/tasks/user/${userId}`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to fetch user tasks: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
-
 // Daily Reset Functions
 export const resetDailyCases = async () => {
   const res = await fetch(`${BASE_URL}/cases/reset-daily`, {
@@ -427,22 +338,6 @@ export const resetDailyCases = async () => {
   
   if (!res.ok) {
     throw new Error(`Daily reset failed: ${res.statusText}`);
-  }
-  
-  return res.json();
-};
-
-// Clear all data function
-export const clearAllData = async () => {
-  const res = await fetch(`${BASE_URL}/documents/clear-all-data`, {
-    method: "POST",
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to clear data: ${res.statusText}`);
   }
   
   return res.json();
