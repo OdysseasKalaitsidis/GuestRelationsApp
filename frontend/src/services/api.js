@@ -13,10 +13,18 @@ const getApiUrl = (useInternal = false) => {
 };
 
 // Helper function to get auth token
-
-// Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('authToken');
+  const token = localStorage.getItem('authToken');
+  if (!token) return null;
+  
+  // Basic token validation - check if it exists and has content
+  if (token.trim() === '') {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    return null;
+  }
+  
+  return token;
 };
 
 // Helper function to get auth headers
