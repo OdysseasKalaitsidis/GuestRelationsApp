@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CasesTable from '../components/CasesTable';
 import UploadModal from '../components/UploadModal';
-import { fetchCasesWithFollowups } from '../services/api';
+import { fetchCasesWithFollowups, clearAllData } from '../services/api';
 
 const CasesPage = () => {
   const [cases, setCases] = useState([]);
@@ -44,19 +44,9 @@ const CasesPage = () => {
   const handleClearAllData = async () => {
     if (window.confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
       try {
-        const response = await fetch('/api/documents/clear-all-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (response.ok) {
-          alert('All data cleared successfully!');
-          loadCases(); // Refresh the cases list
-        } else {
-          throw new Error('Failed to clear data');
-        }
+        const result = await clearAllData();
+        alert('All data cleared successfully!');
+        loadCases(); // Refresh the cases list
       } catch (err) {
         console.error('Failed to clear data:', err);
         alert('Failed to clear data. Please try again.');
