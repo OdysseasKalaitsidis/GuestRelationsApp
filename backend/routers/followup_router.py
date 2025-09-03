@@ -27,7 +27,13 @@ class AnonymizedFollowupResponse(BaseModel):
 @router.post("/", response_model=FollowupOut)
 async def create_new_followup(followup: FollowupCreate, db_service = Depends(get_db_service)):
     """Create a new followup"""
-    return await create_followup(followup)
+    try:
+        result = await create_followup(followup)
+        if result is None:
+            raise HTTPException(status_code=500, detail="Failed to create followup")
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating followup: {str(e)}")
 
 @router.get("/", response_model=List[FollowupOut])
 async def read_followups(db_service = Depends(get_db_service)):

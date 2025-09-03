@@ -30,11 +30,11 @@ async def create_followup(followup: FollowupCreate) -> Optional[Dict[str, Any]]:
             return result
         else:
             logger.error("Failed to create followup: No data returned")
-            return None
+            raise Exception("Failed to create followup: No data returned")
             
     except Exception as e:
-        logger.error(f"Error creating followup: {e}")
-        return None
+        logger.error(f"Error creating followup: {e}", exc_info=True)
+        raise Exception(f"Followup creation failed: {str(e)}")
 
 async def get_all_followups() -> List[Dict[str, Any]]:
     """Get all followups"""

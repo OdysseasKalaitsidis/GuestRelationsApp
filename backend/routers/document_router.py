@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
@@ -11,6 +12,8 @@ from schemas.case import CaseCreate
 from schemas.followup import FollowupCreate
 from pydantic import BaseModel
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -294,13 +297,20 @@ async def complete_workflow(
         if create_cases:
             for i, case in enumerate(created_cases):
                 if i < len(ai_suggestions):
-                    followup_data = FollowupCreate(
-                        case_id=case.id,
-                        suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available"),
-                        status="pending"
-                    )
-                    await create_followup(followup_data)
-                    followups_created += 1
+                    try:
+                        followup_data = FollowupCreate(
+                            case_id=case['id'],  # Use dictionary access since case is a dict
+                            suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available")
+                        )
+                        result = await create_followup(followup_data)
+                        if result:
+                            followups_created += 1
+                            logger.info(f"Created followup {followups_created} for case {case['id']}")
+                        else:
+                            logger.error(f"Failed to create followup for case {case['id']}")
+                    except Exception as e:
+                        logger.error(f"Error creating followup for case {case['id']}: {e}")
+                        # Continue with other followups instead of failing completely
         
         steps.append(WorkflowStep(
             step="Followup Creation",
@@ -332,13 +342,13 @@ async def complete_workflow(
 
 # Clear all data endpoint
 @router.post("/clear-all-data")
-async def clear_all_data_endpoint(db: AsyncSession = Depends(get_db)):
+async def clear_all_data_endpoint():
     """
     Clear all data from the database - cases, followups, and tasks
     """
     try:
-        from services.daily_service import clear_all_data
-        result = await clear_all_data(db)
+        from services.daily_service_supabase import clear_all_data
+        result = await clear_all_data()
         return {
             "message": "All data cleared successfully",
             "details": result
