@@ -82,9 +82,10 @@ export const uploadPDF = async (file) => {
 };
 
 // Complete Workflow (PDF → AI → Cases → Followups)
-export const completeWorkflow = async (file) => {
+export const completeWorkflow = async (file, createCases = true) => {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("create_cases", createCases.toString());
 
   const res = await fetch(`${BASE_URL}/documents/workflow`, {
     method: "POST",

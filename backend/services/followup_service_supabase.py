@@ -16,7 +16,6 @@ async def create_followup(followup: FollowupCreate) -> Optional[Dict[str, Any]]:
         # Prepare followup data
         followup_data = {
             "case_id": followup.case_id,
-            "room": followup.room,
             "suggestion_text": followup.suggestion_text,
             "assigned_to": followup.assigned_to,
             "created_at": datetime.utcnow().isoformat(),

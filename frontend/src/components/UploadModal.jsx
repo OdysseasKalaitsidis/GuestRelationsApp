@@ -117,7 +117,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     setError(null);
     try {
       // Use the complete workflow instead of separate AI generation
-      const workflowResult = await completeWorkflow(pdfFile);
+      const workflowResult = await completeWorkflow(pdfFile, false);
       
       // Extract cases and feedback from workflow result
       const aiFeedbackStep = workflowResult.steps.find(step => step.step === "AI Feedback");
@@ -165,8 +165,22 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     setError(null);
     try {
       const finalCases = aiFeedback.map((c, i) => ({
-        ...c,
-        assignedTo: assignedUsers[i] || null,
+        room: c.room,
+        status: c.status,
+        importance: c.importance,
+        type: c.type,
+        title: c.title,
+        action: c.action,
+        guest: c.guest,
+        created: c.created,
+        created_by: c.created_by,
+        modified: c.modified,
+        modified_by: c.modified_by,
+        source: c.source,
+        membership: c.membership,
+        case_description: c.case_description,
+        in_out: c.in_out,
+        owner_id: assignedUsers[i] || null,
       }));
 
       const createdCases = await createMultipleCases(finalCases);
@@ -174,8 +188,8 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       for (let i = 0; i < createdCases.length; i++) {
         await createFollowup({
           case_id: createdCases[i].id,
-          suggestion_text: finalCases[i].feedback,
-          status: "pending",
+          suggestion_text: aiFeedback[i].feedback,
+          assigned_to: assignedUsers[i] || null,
         });
       }
 

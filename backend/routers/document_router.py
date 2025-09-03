@@ -267,6 +267,15 @@ async def complete_workflow(
                     type=case_data.get("type") or "other",
                     title=title,
                     action=case_data.get("action") or case_data.get("action_text"),
+                    guest=case_data.get("guest"),
+                    created=case_data.get("created"),
+                    created_by=case_data.get("created_by"),
+                    modified=case_data.get("modified"),
+                    modified_by=case_data.get("modified_by"),
+                    source=case_data.get("source"),
+                    membership=case_data.get("membership"),
+                    case_description=case_data.get("case_description"),
+                    in_out=case_data.get("in_out"),
                     owner_id=None  # Explicitly set to None for now
                 )
                 
