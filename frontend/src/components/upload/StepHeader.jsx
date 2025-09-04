@@ -23,10 +23,10 @@ const StepHeader = ({ currentStep }) => {
 
   return (
     <div className="mb-6 text-center">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+      <h3 className="text-xl font-semibold text-main mb-2">
         {getStepTitle()}
       </h3>
-      <p className="text-gray-600">{getStepDescription()}</p>
+      <p className="text-third">{getStepDescription()}</p>
     </div>
   );
 };

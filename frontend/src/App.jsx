@@ -26,11 +26,14 @@ const AuthPage = ({ onLoginSuccess }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Guest Relations System</h1>
-        <p className="text-gray-600 mb-6">Please login to access the system</p>
+        <div className="flex items-center justify-center mb-4">
+          <img src="/docg.png" alt="Guest Relations" className="h-12 w-12 mr-3" />
+          <h1 className="text-3xl font-bold text-main">Guest Relations System</h1>
+        </div>
+        <p className="text-third mb-6">Please login to access the system</p>
         <button
           onClick={() => setShowAuthModal(true)}
-          className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+          className="bg-secondary text-white px-6 py-2 rounded-lg hover:bg-secondary hover:bg-opacity-80"
         >
           Login
         </button>
@@ -114,8 +117,8 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto mb-4"></div>
+          <p className="text-third">Loading...</p>
         </div>
       </div>
     );

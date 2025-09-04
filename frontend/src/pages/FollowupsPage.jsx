@@ -95,8 +95,8 @@ export default function FollowupsPage() {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Loading followups...</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary"></div>
+          <span className="ml-2 text-third">Loading followups...</span>
         </div>
       </div>
     );
@@ -106,12 +106,12 @@ export default function FollowupsPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Followups Management</h1>
-          <p className="text-gray-600 mt-1">Manage and track followup tasks</p>
+          <h1 className="text-2xl font-bold text-main">Followups Management</h1>
+          <p className="text-third mt-1">Manage and track followup tasks</p>
         </div>
         <button
           onClick={loadFollowups}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+          className="bg-third bg-opacity-20 hover:bg-third hover:bg-opacity-30 text-main px-4 py-2 rounded-lg font-medium transition-colors"
         >
           <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -138,54 +138,54 @@ export default function FollowupsPage() {
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-third bg-opacity-10">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-third uppercase tracking-wider">
                 Room/Case ID
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-third uppercase tracking-wider">
                 Case Title
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-third uppercase tracking-wider">
                 Suggestion
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-third uppercase tracking-wider">
                 Assigned To
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-third uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-third divide-opacity-20">
             {followups.map((followup) => (
-              <tr key={followup.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <tr key={followup.id} className="hover:bg-third hover:bg-opacity-5">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-main">
                   {getRoomInfo(followup)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-main">
                   {getCaseTitle(followup)}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
+                <td className="px-6 py-4 text-sm text-main">
                   {editingId === followup.id ? (
                     <input
                       type="text"
                       value={editForm.suggestion_text}
                       onChange={(e) => setEditForm({...editForm, suggestion_text: e.target.value})}
-                      className="w-full border border-gray-300 rounded px-2 py-1"
+                      className="w-full border border-third rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-secondary"
                     />
                   ) : (
                     followup.suggestion_text
                   )}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-main">
                   {editingId === followup.id ? (
                     <input
                       type="text"
                       value={editForm.assigned_to || ''}
                       onChange={(e) => setEditForm({...editForm, assigned_to: e.target.value})}
-                      className="w-full border border-gray-300 rounded px-2 py-1"
+                      className="w-full border border-third rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-secondary"
                       placeholder="User ID"
                     />
                   ) : (
@@ -203,7 +203,7 @@ export default function FollowupsPage() {
                       </button>
                       <button
                         onClick={handleCancel}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-third hover:text-main"
                       >
                         Cancel
                       </button>
@@ -212,7 +212,7 @@ export default function FollowupsPage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(followup)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-secondary hover:text-secondary hover:bg-opacity-80"
                       >
                         Edit
                       </button>
@@ -231,7 +231,7 @@ export default function FollowupsPage() {
         </table>
         
         {followups.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-third">
             <p>No followups found. Upload a PDF to create some!</p>
           </div>
         )}

@@ -13,10 +13,10 @@ export default function CasesTable({ cases, onCaseUpdate }) {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-secondary bg-opacity-20 text-secondary';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-third bg-opacity-20 text-third';
     }
   };
 
@@ -25,7 +25,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
       case 'high': return 'bg-red-100 text-red-800';
       case 'medium': return 'bg-yellow-100 text-yellow-800';
       case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-third bg-opacity-20 text-third';
     }
   };
 
@@ -70,7 +70,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
 
   if (!cases || cases.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-third">
         <p>No cases found. Upload a PDF to get started!</p>
       </div>
     );
@@ -82,10 +82,10 @@ export default function CasesTable({ cases, onCaseUpdate }) {
         {/* Mobile/Tablet View */}
         <div className="block xl:hidden">
           {cases.map((caseItem) => (
-            <div key={caseItem.id} className="bg-white border border-gray-200 rounded-lg mb-4 p-4">
+            <div key={caseItem.id} className="bg-white border border-third border-opacity-20 rounded-lg mb-4 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-medium text-gray-900">Room {caseItem.room || 'N/A'}</span>
+                  <span className="text-sm font-medium text-main">Room {caseItem.room || 'N/A'}</span>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(caseItem.status)}`}>
                     {caseItem.status || 'pending'}
                   </span>
@@ -94,18 +94,18 @@ export default function CasesTable({ cases, onCaseUpdate }) {
               
               <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
                 <div>
-                  <span className="text-gray-500">Type:</span>
-                  <p className="text-gray-900">{caseItem.type || 'N/A'}</p>
+                  <span className="text-third">Type:</span>
+                  <p className="text-main">{caseItem.type || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Importance:</span>
+                  <span className="text-third">Importance:</span>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>
                     {caseItem.importance || 'N/A'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Assignee:</span>
-                  <p className="text-gray-900">
+                  <span className="text-third">Assignee:</span>
+                  <p className="text-main">
                     {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
                   </p>
                 </div>
@@ -113,20 +113,20 @@ export default function CasesTable({ cases, onCaseUpdate }) {
 
               <div className="space-y-2">
                 <div>
-                  <span className="text-gray-500 text-sm">Description:</span>
+                  <span className="text-third text-sm">Description:</span>
                   <button
                     onClick={() => openDetailsModal(caseItem, 'description')}
-                    className="block w-full text-left text-gray-900 text-sm hover:text-blue-600 transition-colors truncate"
+                    className="block w-full text-left text-main text-sm hover:text-secondary transition-colors truncate"
                     title="Click to view full description"
                   >
                     {caseItem.case_description || caseItem.action || 'N/A'}
                   </button>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-sm">Action:</span>
+                  <span className="text-third text-sm">Action:</span>
                   <button
                     onClick={() => openDetailsModal(caseItem, 'action')}
-                    className="block w-full text-left text-gray-900 text-sm hover:text-blue-600 transition-colors truncate"
+                    className="block w-full text-left text-main text-sm hover:text-secondary transition-colors truncate"
                     title="Click to view full action"
                   >
                     {caseItem.action || 'N/A'}
@@ -154,36 +154,36 @@ export default function CasesTable({ cases, onCaseUpdate }) {
         </div>
 
         {/* Desktop View */}
-        <table className="hidden xl:table w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <thead className="bg-gray-50">
+        <table className="hidden xl:table w-full border border-third border-opacity-20 rounded-lg overflow-hidden shadow-sm">
+        <thead className="bg-third bg-opacity-10">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Room
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Status
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Assignee
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Importance
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Type
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Description
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Action
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-white divide-y divide-third divide-opacity-20">
           {cases.map((caseItem) => (
-            <tr key={caseItem.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+            <tr key={caseItem.id} className="hover:bg-third hover:bg-opacity-5">
+              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-main">
                 {caseItem.room || 'N/A'}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
@@ -201,7 +201,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                   <option value="rejected">Rejected</option>
                 </select>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-main">
                 {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
@@ -209,22 +209,22 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                   {caseItem.importance || 'N/A'}
                 </span>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-main">
                 {caseItem.type || 'N/A'}
               </td>
-              <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+              <td className="px-4 py-3 text-sm text-main max-w-xs">
                 <button
                   onClick={() => openDetailsModal(caseItem, 'description')}
-                  className="text-left w-full hover:text-blue-600 transition-colors truncate block"
+                  className="text-left w-full hover:text-secondary transition-colors truncate block"
                   title="Click to view full description"
                 >
                   {caseItem.case_description || caseItem.action || 'N/A'}
                 </button>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+              <td className="px-4 py-3 text-sm text-main max-w-xs">
                 <button
                   onClick={() => openDetailsModal(caseItem, 'action')}
-                  className="text-left w-full hover:text-blue-600 transition-colors truncate block"
+                  className="text-left w-full hover:text-secondary transition-colors truncate block"
                   title="Click to view full action"
                 >
                   {caseItem.action || 'N/A'}

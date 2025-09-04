@@ -294,8 +294,8 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Admin Workflow Walkthrough</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl">×</button>
+          <h2 className="text-2xl font-bold text-main">Admin Workflow Walkthrough</h2>
+          <button onClick={onClose} className="text-third hover:text-main text-xl">×</button>
         </div>
 
         {/* Progress Bar */}
