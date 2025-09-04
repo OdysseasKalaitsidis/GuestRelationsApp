@@ -102,9 +102,9 @@ const CaseDetailsModal = ({ isOpen, onClose, caseData, detailType }) => {
                     <p className="text-main text-sm leading-relaxed">
                       {followup.suggestion_text}
                     </p>
-                    {followup.assigned_to && (
+                    {followup.assigned_user_name && (
                       <p className="text-xs text-third mt-2">
-                        Assigned to: {followup.assigned_to}
+                        Assigned to: {followup.assigned_user_name}
                       </p>
                     )}
                   </div>

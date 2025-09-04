@@ -106,7 +106,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                 <div>
                   <span className="text-third">Assignee:</span>
                   <p className="text-main">
-                    {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
+                    {caseItem.assigned_user_name || caseItem.users?.name || (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
                   </p>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                 </select>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-main">
-                {caseItem.users ? caseItem.users.name : (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
+                {caseItem.assigned_user_name || caseItem.users?.name || (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImportanceColor(caseItem.importance)}`}>

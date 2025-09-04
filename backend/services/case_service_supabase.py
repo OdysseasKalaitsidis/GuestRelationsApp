@@ -120,6 +120,11 @@ async def get_cases_with_followups() -> List[Dict[str, Any]]:
                 user = await db_service.get_user_by_id(case["owner_id"])
                 if user:
                     case["users"] = user
+                    case["assigned_user_name"] = user.get("name", "Unknown")
+                else:
+                    case["assigned_user_name"] = "Unknown User"
+            else:
+                case["assigned_user_name"] = "Unassigned"
         
         return cases_with_followups
     except Exception as e:

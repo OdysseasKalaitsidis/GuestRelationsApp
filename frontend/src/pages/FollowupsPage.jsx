@@ -189,7 +189,7 @@ export default function FollowupsPage() {
                       placeholder="User ID"
                     />
                   ) : (
-                    followup.assigned_to || 'Unassigned'
+                    followup.assigned_user_name || followup.assigned_to || 'Unassigned'
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

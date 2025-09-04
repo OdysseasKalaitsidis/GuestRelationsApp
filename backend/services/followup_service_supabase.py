@@ -57,10 +57,22 @@ async def get_followup_by_id(followup_id: int) -> Optional[Dict[str, Any]]:
         return None
 
 async def get_followups_with_case_info() -> List[Dict[str, Any]]:
-    """Get all followups with case information"""
+    """Get all followups with case information and assigned user names"""
     try:
         db_service = await get_db_service()
         followups_with_case_info = await db_service.get_followups_with_case_info()
+        
+        # Add assigned user names to followups
+        for followup in followups_with_case_info:
+            if followup.get("assigned_to"):
+                user = await db_service.get_user_by_id(followup["assigned_to"])
+                if user:
+                    followup["assigned_user_name"] = user.get("name", "Unknown")
+                else:
+                    followup["assigned_user_name"] = "Unknown User"
+            else:
+                followup["assigned_user_name"] = "Unassigned"
+        
         return followups_with_case_info
     except Exception as e:
         logger.error(f"Error getting followups with case info: {e}")
