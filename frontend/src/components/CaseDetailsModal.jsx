@@ -129,3 +129,4 @@ const CaseDetailsModal = ({ isOpen, onClose, caseData, detailType }) => {
 };
 
 export default CaseDetailsModal;
+

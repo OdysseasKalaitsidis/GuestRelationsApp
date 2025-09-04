@@ -143,6 +143,207 @@ async def upload_document(file: UploadFile = File(...)):
             detail=f"Error processing document: {str(e)}"
         )
 
+@router.post("/streamlined-workflow", response_model=CompleteWorkflowResponse)
+async def streamlined_workflow(
+    file: UploadFile = File(...),
+    create_cases: bool = False
+):
+    """
+    Streamlined workflow: Upload PDF → Process → AI Feedback (automated, no manual review)
+    This combines steps 1 and 2 automatically for a smoother user experience.
+    """
+    steps = []
+    
+    try:
+        # Step 0: Clear all previous data
+        from services.daily_service_supabase import clear_all_data, verify_data_cleared
+        
+        clear_result = await clear_all_data()
+        steps.append(WorkflowStep(
+            step="Data Clearance",
+            status="success",
+            message=clear_result["message"],
+            data=clear_result
+        ))
+        
+        # Wait a moment for database to settle
+        import asyncio
+        await asyncio.sleep(1)
+        
+        # Verify data is actually cleared
+        verification = await verify_data_cleared()
+        if verification['is_cleared']:
+            steps.append(WorkflowStep(
+                step="Data Verification",
+                status="success",
+                message="Database verified empty - ready for new data",
+                data=verification
+            ))
+        else:
+            steps.append(WorkflowStep(
+                step="Data Verification",
+                status="warning",
+                message=f"Warning: {verification['message']}",
+                data=verification
+            ))
+        
+        # Step 1: Process PDF and extract cases
+        cases_data = process_document(file)
+        
+        if not cases_data:
+            steps.append(WorkflowStep(
+                step="PDF Parsing",
+                status="warning",
+                message="No cases found in document - document may not contain case data in expected format",
+                data={"cases_count": 0}
+            ))
+            
+            return CompleteWorkflowResponse(
+                steps=steps,
+                cases_created=0,
+                followups_created=0,
+                final_message="Document processed successfully but no cases were found."
+            )
+        
+        steps.append(WorkflowStep(
+            step="PDF Parsing",
+            status="success",
+            message=f"Extracted {len(cases_data)} cases from PDF",
+            data={"cases_count": len(cases_data), "cases": cases_data}
+        ))
+        
+        # Step 2: Generate AI Feedback (automated)
+        try:
+            from services.ai_service import suggest_feedback, check_openai_available
+            
+            # Check if OpenAI is available
+            is_available, message = check_openai_available()
+            if is_available:
+                ai_suggestions = suggest_feedback(cases_data)
+                steps.append(WorkflowStep(
+                    step="AI Feedback",
+                    status="success",
+                    message=f"Generated AI suggestions for {len(ai_suggestions)} cases",
+                    data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+                ))
+            else:
+                # Create default suggestions when AI is not available
+                ai_suggestions = [
+                    {
+                        "case_id": i,
+                        "suggestion_text": "Please review this case and determine appropriate follow-up action.",
+                        "confidence": 0.0,
+                        "case_data": case
+                    }
+                    for i, case in enumerate(cases_data)
+                ]
+                steps.append(WorkflowStep(
+                    step="AI Feedback",
+                    status="warning",
+                    message=f"AI suggestions not available: {message}. Using default suggestions.",
+                    data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+                ))
+        except Exception as e:
+            print(f"Error generating AI suggestions: {e}")
+            # Create default suggestions on error
+            ai_suggestions = [
+                {
+                    "case_id": i,
+                    "suggestion_text": "Please review this case and determine appropriate follow-up action.",
+                    "confidence": 0.0,
+                    "case_data": case
+                }
+                for i, case in enumerate(cases_data)
+            ]
+            steps.append(WorkflowStep(
+                step="AI Feedback",
+                status="warning",
+                message=f"AI suggestions failed: {str(e)}. Using default suggestions.",
+                data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+            ))
+        
+        # Step 3: Create Cases in Database (only if create_cases is True)
+        created_cases = []
+        if create_cases:
+            case_objects = []
+            for case_data in cases_data:
+                # Ensure title is never empty
+                title = case_data.get("title") or case_data.get("case") or "Untitled Case"
+                
+                # Map the data properly, handling potential field name mismatches
+                case_obj = CaseCreate(
+                    room=case_data.get("room"),
+                    status=case_data.get("status") or "pending",
+                    importance=case_data.get("importance") or "medium",
+                    type=case_data.get("type") or "other",
+                    title=title,
+                    action=case_data.get("action") or case_data.get("action_text"),
+                    guest=case_data.get("guest"),
+                    created=case_data.get("created"),
+                    created_by=case_data.get("created_by"),
+                    modified=case_data.get("modified"),
+                    modified_by=case_data.get("modified_by"),
+                    source=case_data.get("source"),
+                    membership=case_data.get("membership"),
+                    case_description=case_data.get("case_description"),
+                    in_out=case_data.get("in_out"),
+                    owner_id=None  # Explicitly set to None for now
+                )
+                
+                case_objects.append(case_obj)
+            
+            created_cases = await bulk_create_cases(case_objects)
+            
+            steps.append(WorkflowStep(
+                step="Case Creation",
+                status="success",
+                message=f"Created {len(created_cases)} cases in database",
+                data={"cases_created": len(created_cases), "cases": cases_data}
+            ))
+            
+            # Step 4: Create Followups with AI Suggestions
+            followups_created = 0
+            for i, case in enumerate(created_cases):
+                if i < len(ai_suggestions):
+                    try:
+                        followup_data = FollowupCreate(
+                            case_id=case['id'],
+                            suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available")
+                        )
+                        result = await create_followup(followup_data)
+                        if result:
+                            followups_created += 1
+                    except Exception as e:
+                        logger.error(f"Error creating followup for case {case['id']}: {e}")
+            
+            steps.append(WorkflowStep(
+                step="Followup Creation",
+                status="success",
+                message=f"Created {followups_created} followups with AI suggestions",
+                data={"followups_created": followups_created}
+            ))
+        
+        return CompleteWorkflowResponse(
+            steps=steps,
+            cases_created=len(created_cases),
+            followups_created=followups_created if create_cases else 0,
+            final_message="Streamlined workflow completed successfully! Cases extracted and AI feedback generated."
+        )
+        
+    except Exception as e:
+        # Add error step
+        steps.append(WorkflowStep(
+            step="Error",
+            status="error",
+            message=f"Streamlined workflow failed: {str(e)}",
+            data={"error": str(e)}
+        ))
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Streamlined workflow failed at step: {steps[-1].step}. Error: {str(e)}"
+        )
+
 @router.post("/workflow", response_model=CompleteWorkflowResponse)
 async def complete_workflow(
     file: UploadFile = File(...),

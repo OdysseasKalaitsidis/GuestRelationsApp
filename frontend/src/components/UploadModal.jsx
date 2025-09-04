@@ -6,6 +6,7 @@ import {
   fetchUsers,
   uploadDocument,
   completeWorkflow,
+  streamlinedWorkflow,
   getAuthHeaders,
 } from "../services/api";
 import UploadStep from "./upload/UploadStep";
@@ -102,7 +103,12 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       }
 
       setPdfCases(extractedCases);
-      setCurrentStep(2);
+      
+      // Automatically proceed to step 3 (Edit Cases & Assign Users) after a brief delay
+      setTimeout(async () => {
+        await handleAutoProceedToStep3(extractedCases);
+      }, 1000); // 1 second delay to show step 2 briefly
+      
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to process document");
@@ -111,13 +117,13 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     }
   };
 
-  // ---------- Step 2: Generate AI Feedback ----------
-  const handleGenerateAI = async () => {
+  // Auto-proceed function to go directly from step 2 to step 3
+  const handleAutoProceedToStep3 = async (cases) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Use the complete workflow instead of separate AI generation
-      const workflowResult = await completeWorkflow(pdfFile, false);
+      // Use the streamlined workflow to get AI feedback automatically
+      const workflowResult = await streamlinedWorkflow(pdfFile, false);
       
       // Extract cases and feedback from workflow result
       const aiFeedbackStep = workflowResult.steps.find(step => step.step === "AI Feedback");
@@ -127,13 +133,13 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       console.log("Feedback cases:", feedbackCases);
       
       // Map feedback to cases
-      const casesWithFeedback = pdfCases.map((c, i) => ({
+      const casesWithFeedback = cases.map((c, i) => ({
         ...c,
         feedback: feedbackCases[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
       }));
       
       setAiFeedback(casesWithFeedback);
-      setCurrentStep(3);
+      setCurrentStep(3); // Automatically go to step 3
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to generate AI feedback");
@@ -210,18 +216,28 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
   };
 
   const nextStep = () => {
-    if (currentStep === 2) handleGenerateAI();
-    else if (currentStep < totalSteps) setCurrentStep(currentStep + 1);
+    // Step 2 is now automated, so we skip manual navigation for it
+    if (currentStep === 1) {
+      // Step 1 to 2 is handled automatically in handleUpload
+      return;
+    } else if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1);
+    // Step 2 is automated, so going back from step 3 goes to step 1
+    if (currentStep === 3) {
+      setCurrentStep(1);
+    } else if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
 
   const canProceed = () => {
     switch (currentStep) {
       case 1: return pdfCases.length > 0;
-      case 2: return true;
+      case 2: return false; // Step 2 is automated, no manual proceed
       case 3: return true;
       case 4: return true;
       default: return false;

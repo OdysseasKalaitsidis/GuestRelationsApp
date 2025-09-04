@@ -115,3 +115,4 @@ async def seed_users():
 
 if __name__ == "__main__":
     asyncio.run(seed_users())
+

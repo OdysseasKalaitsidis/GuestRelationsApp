@@ -81,6 +81,27 @@ export const uploadPDF = async (file) => {
   return uploadDocument(file);
 };
 
+// Streamlined Workflow (PDF → AI → Cases → Followups) - Automated
+export const streamlinedWorkflow = async (file, createCases = false) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("create_cases", createCases.toString());
+
+  const res = await fetch(`${BASE_URL}/documents/streamlined-workflow`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body: formData,
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Streamlined workflow failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
 // Complete Workflow (PDF → AI → Cases → Followups)
 export const completeWorkflow = async (file, createCases = true) => {
   const formData = new FormData();
