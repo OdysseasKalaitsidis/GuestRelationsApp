@@ -74,9 +74,9 @@ const CasesPage = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-main mb-2">Cases Management</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-main mb-2">Daily Guest Relations Case Management</h1>
           <p className="text-third">
-            View and manage all cases
+            View and manage all cases of DOC
           </p>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full lg:w-auto">
@@ -85,7 +85,7 @@ const CasesPage = () => {
             className="bg-secondary text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg hover:bg-secondary hover:bg-opacity-80 transition-colors flex items-center justify-center space-x-2"
           >
             <span>📄</span>
-            <span>Start New Workflow</span>
+            <span>Upload Daily Cases</span>
           </button>
         </div>
       </div>
