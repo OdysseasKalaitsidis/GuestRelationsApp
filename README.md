@@ -1,10 +1,8 @@
 # Guest Relations Management System
 
-A comprehensive, production-ready system for managing guest relations cases, document processing, and AI-powered workflows. Built with FastAPI backend and React frontend.
+A production-ready system for managing guest relations cases with AI-powered document processing and workflow automation. Built with FastAPI backend and React frontend.
 
-## 🏗️ Architecture Overview
-
-The system follows a clean, modular architecture with clear separation of concerns:
+## 🏗️ Architecture
 
 ```
 GR_Domes/
@@ -13,18 +11,17 @@ GR_Domes/
 │   ├── models.py               # Database models
 │   ├── db.py                   # Database connection
 │   ├── requirements.txt        # Python dependencies
-│   ├── routers/                # API route handlers (7 routers)
-│   ├── services/               # Business logic layer (10 services)
+│   ├── routers/                # API route handlers
+│   ├── services/               # Business logic layer
 │   ├── schemas/                # Pydantic data models
 │   └── alembic/                # Database migrations
 ├── frontend/                   # React frontend application
 │   ├── src/
 │   │   ├── components/         # Reusable UI components
-│   │   ├── pages/              # Page components (3 pages)
+│   │   ├── pages/              # Page components
 │   │   └── services/           # API service layer
 │   ├── package.json            # Node.js dependencies
-│   └── README.md               # Frontend documentation
-├── railway.json                # Railway deployment config
+│   └── vite.config.js          # Build configuration
 └── README.md                   # This file
 ```
 
@@ -64,11 +61,10 @@ GR_Domes/
 
 ## 📋 Prerequisites
 
-- **Python 3.8+** for backend
+- **Python 3.11** for backend
 - **Node.js 16+** for frontend
 - **Supabase PostgreSQL** database
 - **OpenAI API key** for AI features
-- **Supabase account** for database (optional)
 
 ## 🚀 Quick Start
 
@@ -77,11 +73,9 @@ GR_Domes/
 cd backend
 pip install -r requirements.txt
 
-# Create .env file
-echo "DATABASE_URL=your_database_url
-OPENAI_API_KEY=your_openai_key
-SECRET_KEY=your_secret_key
-ENVIRONMENT=development" > .env
+# Create .env file with your configuration
+cp .env.example .env
+# Edit .env with your actual values
 
 # Setup database
 alembic upgrade head
@@ -96,181 +90,81 @@ cd frontend
 npm install
 
 # Create .env file
-echo "VITE_API_URL=http://localhost:8000/api" > .env
+cp .env.example .env
+# Edit .env with your API URL
 
-# Start development server
+# Run development server
 npm run dev
 ```
 
-### 3. Access the System
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **Frontend**: http://localhost:5173
+## 🔧 Environment Configuration
 
-## 🔧 Configuration
-
-### Environment Variables
-
-#### Backend (.env)
+### Backend (.env)
 ```env
-DATABASE_URL=postgresql://user:pass@localhost/guest_relations
+DATABASE_URL=your_supabase_database_url
 OPENAI_API_KEY=your_openai_api_key
-SECRET_KEY=your_secret_key_here
+SECRET_KEY=your_jwt_secret_key
 ENVIRONMENT=development
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
 ```
 
-#### Frontend (.env)
+### Frontend (.env)
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-### Database Configuration
-The system is configured for Supabase PostgreSQL. The `DATABASE_URL` should point to your Supabase PostgreSQL instance.
+## 📊 API Endpoints
 
-## 📚 API Documentation
-
-### Core Endpoints
-
-#### Authentication
-- `POST /api/auth/login` - User authentication
+### Authentication
+- `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 
-#### Documents
-- `POST /api/documents/upload` - Upload and process documents
-- `POST /api/documents/workflow` - Complete workflow automation
+### Cases
+- `GET /api/cases` - List all cases
+- `POST /api/cases` - Create new case
+- `GET /api/cases/{id}` - Get case details
+- `PUT /api/cases/{id}` - Update case
+- `DELETE /api/cases/{id}` - Delete case
 
-#### Cases
-- `GET /api/cases/` - List all cases
-- `POST /api/cases/` - Create single case
-- `POST /api/cases/bulk` - Create multiple cases
-- `POST /api/cases/manual` - Manual case creation
-- `POST /api/cases/template/{name}` - Case from template
+### Documents
+- `POST /api/documents/upload` - Upload document
+- `GET /api/documents/{id}` - Get document details
 
-#### Followups & Tasks
-- `GET /api/followups/` - List followups
-- `GET /api/tasks/` - List tasks
+### Followups
+- `GET /api/followups` - List followups
+- `POST /api/followups` - Create followup
+- `PUT /api/followups/{id}` - Update followup
 
-### Interactive API Docs
-Visit `/docs` when running the backend for interactive Swagger documentation.
+## 🚀 Deployment
 
-## 🏭 Production Deployment
+### Backend (Render)
+1. Connect your GitHub repository
+2. Set environment variables
+3. Deploy with Python 3.11 runtime
 
-### Railway Deployment
-The system is pre-configured for Railway deployment:
+### Frontend (Netlify/Vercel)
+1. Connect your GitHub repository
+2. Set build command: `npm run build`
+3. Set publish directory: `dist`
 
-1. **Connect Repository**: Link your GitHub repository to Railway
-2. **Environment Variables**: Set production environment variables
-3. **Auto-Deploy**: Railway automatically builds and deploys on push
+## 📝 Development Guidelines
 
-### Environment Configuration
-```env
-ENVIRONMENT=production
-ALLOWED_ORIGINS=https://yourdomain.com
-RAILWAY_PUBLIC_DOMAIN=your-app.railway.app
-```
+- Follow PEP 8 for Python code
+- Use TypeScript for frontend components
+- Implement proper error handling
+- Write comprehensive API documentation
+- Use environment variables for configuration
+- Follow RESTful API conventions
 
-## 🧪 Development
+## 🤝 Contributing
 
-### Code Quality
-- **Type Hints**: Full Python type annotations
-- **ESLint**: JavaScript/React code quality
-- **Documentation**: Comprehensive docstrings and READMEs
-- **Error Handling**: Consistent error responses and logging
-
-### Testing Strategy
-- **Backend**: Unit tests for services, integration tests for APIs
-- **Frontend**: Component testing, API integration testing
-- **Database**: Migration testing and data validation
-
-### Contributing
-1. Follow existing code structure and patterns
-2. Add comprehensive tests for new features
-3. Update documentation for API changes
-4. Ensure responsive design for frontend changes
-5. Test across different devices and browsers
-
-## 📊 System Architecture
-
-### Data Flow
-1. **Document Upload** → PDF/DOCX processing
-2. **AI Analysis** → Case extraction and suggestions
-3. **Case Creation** → Database storage with followups
-4. **Task Assignment** → User assignment and tracking
-5. **Progress Monitoring** → Status updates and completion
-
-### Security Features
-- **JWT Authentication**: Secure token-based auth
-- **Role-based Access**: Admin and user permissions
-- **Data Anonymization**: GDPR-compliant data handling
-- **Input Validation**: Comprehensive request validation
-- **CORS Protection**: Production-ready CORS configuration
-
-## 🔍 Monitoring & Logging
-
-### Backend Logging
-- Structured logging with configurable levels
-- Request/response logging middleware
-- Error tracking and exception handling
-- Health check endpoints
-
-### Frontend Monitoring
-- Error boundaries for React components
-- API error handling and user feedback
-- Performance monitoring and optimization
-- Responsive design validation
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### Backend
-- **Database Connection**: Check DATABASE_URL and credentials
-- **AI Processing**: Verify OPENAI_API_KEY is valid
-- **Port Conflicts**: Ensure port 8000 is available
-
-#### Frontend
-- **API Connection**: Verify backend is running and accessible
-- **Build Errors**: Check Node.js version and dependencies
-- **CORS Issues**: Ensure backend CORS settings match frontend URL
-
-### Debug Mode
-Set `ENVIRONMENT=development` to enable:
-- Interactive API documentation
-- Detailed error messages
-- Development-specific CORS settings
-- Hot reload for development
-
-## 📈 Performance & Scalability
-
-### Backend Optimization
-- **Async Processing**: FastAPI async/await for concurrent requests
-- **Database Optimization**: Efficient queries and indexing
-- **Caching**: Response caching for frequently accessed data
-- **Load Balancing**: Ready for horizontal scaling
-
-### Frontend Optimization
-- **Code Splitting**: Route-based code splitting
-- **Lazy Loading**: Component lazy loading
-- **Bundle Optimization**: Tree shaking and minification
-- **CDN Ready**: Static asset optimization
-
-## 🤝 Support & Community
-
-### Documentation
-- **Backend**: See `backend/README.md` for detailed API docs
-- **Frontend**: See `frontend/README.md` for component docs
-- **API**: Interactive docs at `/docs` endpoint
-
-### Getting Help
-1. Check the troubleshooting section above
-2. Review the detailed README files in each directory
-3. Examine the API documentation at `/docs`
-4. Check the code comments and docstrings
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
-
----
-
-**Built with ❤️ for modern guest relations management**
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

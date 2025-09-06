@@ -6,8 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from logging_config import setup_logging
-from routers import auth_route, user_router, document_router, followup_router, case_router, anonymization_router
-from test_router import router as test_router
+from routers import auth_route, user_router, document_router, followup_router, case_router, anonymization_router, rag_router
 
 # Load environment variables
 load_dotenv()
@@ -94,13 +93,13 @@ async def startup_event():
         logger.error(f"Supabase initialization failed: {e}")
 
 # Routers
-app.include_router(test_router, prefix="/api", tags=["Test"])
 app.include_router(auth_route.router, prefix="/api", tags=["Authentication"])
 app.include_router(user_router.router, prefix="/api", tags=["Users"])
 app.include_router(document_router.router, prefix="/api", tags=["Document Processing"])
 app.include_router(followup_router.router, prefix="/api", tags=["Followups"])
 app.include_router(case_router.router, prefix="/api", tags=["Cases"])
 app.include_router(anonymization_router.router, prefix="/api", tags=["Anonymization"])
+app.include_router(rag_router.router, prefix="/api", tags=["RAG"])
 
 # Static files
 if os.path.exists("static"):

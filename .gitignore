@@ -79,3 +79,25 @@ uploads/*
 # Temporary files
 *.tmp
 *.temp
+
+# Test files
+test_*.py
+*_test.py
+debug_*.py
+check_*.py
+create_*.py
+seed_*.py
+list_*.py
+diagnose_*.py
+final_*.py
+
+# Documentation files (keep only main README)
+*_SUMMARY.md
+*_REPORT.md
+*_GUIDE.md
+*_SETUP.md
+*_MIGRATION.md
+*_TROUBLESHOOTING.md
+*_FIX_SUMMARY.md
+*_IMPLEMENTATION_SUMMARY.md
+*_TEST_REPORT.md

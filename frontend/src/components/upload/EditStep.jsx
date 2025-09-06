@@ -10,6 +10,20 @@ const EditStep = ({
 }) => {
   return (
     <div className="space-y-6">
+      {/* GDPR Compliance Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center">
+          <div className="text-blue-600 mr-2">🔒</div>
+          <div>
+            <strong className="text-blue-800">GDPR Compliance Notice</strong>
+            <p className="text-blue-700 text-sm mt-1">
+              All personal data (names, dates, contact information) will be automatically anonymized when cases are saved. 
+              You can edit the data below, but it will be anonymized for GDPR compliance.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {aiFeedback.map((caseItem, index) => (
         <div key={index} className="border rounded-lg p-4 bg-white">
           <h5 className="font-semibold mb-4 text-lg">{caseItem.title || 'Untitled Case'}</h5>
@@ -71,7 +85,9 @@ const EditStep = ({
           </div>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Guest</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Guest <span className="text-blue-600 text-xs">(Will be anonymized)</span>
+            </label>
             <input
               type="text"
               value={caseItem.guest || ''}
@@ -82,7 +98,9 @@ const EditStep = ({
           </div>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Case Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Case Description <span className="text-blue-600 text-xs">(Names will be anonymized)</span>
+            </label>
             <textarea
               value={caseItem.case_description || ''}
               onChange={(e) => onCaseEdit(index, "case_description", e.target.value)}

@@ -22,47 +22,82 @@ def get_nlp():
     return _nlp
 
 class AnonymizationService:
-    """Enhanced anonymization service for documents"""
+    """Enhanced anonymization service for documents with focus on client names and room information"""
     
     def __init__(self):
-        # Common patterns for PII detection
+        # Enhanced patterns for PII detection with focus on hotel/guest relations
         self.patterns = {
+            # Personal Information
             'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
             'phone': r'\+?[\d\s\-\(\)]{7,}',
-            'booking_ref': r'\b(?:REF|#|Booking|Reservation)[\s\-]?\d+[A-Za-z0-9]*\b',
             'credit_card': r'\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b',
             'passport': r'\b[A-Z]{1,2}\d{6,9}\b',
             'ssn': r'\b\d{3}[\-]?\d{2}[\-]?\d{4}\b',
+            
+            # Hotel-specific patterns
+            'booking_ref': r'\b(?:REF|#|Booking|Reservation|Confirmation)[\s\-]?\d+[A-Za-z0-9]*\b',
+            'guest_id': r'\b(?:Guest|Customer|Client)\s*ID\s*[#]?\s*(\d+)\b',
+            'reservation_id': r'\b(?:Reservation|Booking)\s*ID\s*[#]?\s*(\d+)\b',
+            
+            # Room information - Enhanced patterns
+            'room_number': r'\b(?:Room|Rm|Suite|Apartment|Apt)\s*[#]?\s*(\d+[A-Za-z]?)\b',
+            'room_type': r'\b(?:Standard|Deluxe|Suite|Executive|Presidential|King|Queen|Twin|Single|Double)\s+(?:Room|Suite|Apartment)\b',
+            'floor_number': r'\b(?:Floor|Level|Story)\s*(\d+)\b',
+            'building_section': r'\b(?:Building|Tower|Wing|Section)\s*[A-Za-z]\b',
+            
+            # Check-in/Check-out information
+            'check_in': r'\b(?:Check[-\s]?in|Arrival|Check[-\s]?in\s*Date)\s*[:=]?\s*([^\n]+)\b',
+            'check_out': r'\b(?:Check[-\s]?out|Departure|Check[-\s]?out\s*Date)\s*[:=]?\s*([^\n]+)\b',
+            
+            # Dates and Times
             'date': r'\b\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}\b',
             'time': r'\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\b',
+            
+            # Address and Location
             'address': r'\b\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)\b',
             'postal_code': r'\b[A-Z]{1,2}\d[A-Z]\s?\d[A-Z]\d\b',  # UK format
             'ip_address': r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',
             'url': r'https?://(?:[-\w.])+(?:[:\d]+)?(?:/(?:[\w/_.])*(?:\?(?:[\w&=%.])*)?(?:#(?:[\w.])*)?)?',
+            
+            # Additional hotel-specific patterns
+            'amenity_request': r'\b(?:Request|Need|Would like)\s+(?:extra|additional|more)\s+(?:towels|pillows|blankets|toiletries)\b',
+            'maintenance_request': r'\b(?:Issue|Problem|Broken|Not working|Faulty)\s+(?:with|in)\s+(?:AC|heating|plumbing|electrical|appliance)\b',
+            'service_request': r'\b(?:Room service|Housekeeping|Concierge|Maintenance|Technical support)\s+(?:request|call|assistance)\b',
         }
         
-        # Custom replacement tokens
+        # Enhanced replacement tokens
         self.replacements = {
             'email': '[EMAIL]',
             'phone': '[PHONE]',
-            'booking_ref': '[BOOKING_REF]',
+            'booking_ref': '[BOOKING_REFERENCE]',
             'credit_card': '[CREDIT_CARD]',
             'passport': '[PASSPORT]',
             'ssn': '[SSN]',
+            'guest_id': '[GUEST_ID]',
+            'reservation_id': '[RESERVATION_ID]',
             'date': '[DATE]',
             'time': '[TIME]',
             'address': '[ADDRESS]',
             'postal_code': '[POSTAL_CODE]',
             'ip_address': '[IP_ADDRESS]',
             'url': '[URL]',
-            'name': '[NAME]',
+            'name': '[CLIENT_NAME]',
             'company': '[COMPANY]',
-            'location': '[LOCATION]'
+            'location': '[LOCATION]',
+            'room_number': '[ROOM_NUMBER]',
+            'room_type': '[ROOM_TYPE]',
+            'floor_number': '[FLOOR_NUMBER]',
+            'building_section': '[BUILDING_SECTION]',
+            'check_in': '[CHECK_IN_DATE]',
+            'check_out': '[CHECK_OUT_DATE]',
+            'amenity_request': '[AMENITY_REQUEST]',
+            'maintenance_request': '[MAINTENANCE_REQUEST]',
+            'service_request': '[SERVICE_REQUEST]',
         }
     
     def anonymize_text(self, text: str, preserve_dates: bool = False, preserve_times: bool = False) -> str:
         """
-        Anonymize text content with configurable options
+        Anonymize text content with GDPR compliance - remove names but preserve room numbers
         
         Args:
             text: Input text to anonymize
@@ -70,47 +105,68 @@ class AnonymizationService:
             preserve_times: Whether to preserve time information
         
         Returns:
-            Anonymized text
+            Anonymized text with names removed but room numbers preserved
         """
         if not text:
             return text
             
         anonymized_text = text
         
-        # Apply pattern-based anonymization
-        for pattern_name, pattern in self.patterns.items():
-            if pattern_name == 'date' and preserve_dates:
-                continue
-            if pattern_name == 'time' and preserve_times:
-                continue
-                
-            replacement = self.replacements.get(pattern_name, f'[{pattern_name.upper()}]')
-            anonymized_text = re.sub(pattern, replacement, anonymized_text, flags=re.IGNORECASE)
+        # Step 1: Replace names with titles (Mr., Mrs., etc.) - GDPR compliance
+        name_with_title_pattern = r'\b(?:Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b'
+        anonymized_text = re.sub(name_with_title_pattern, '[CLIENT_NAME]', anonymized_text)
         
-        # Use spaCy for named entity recognition if available
+        # Step 2: Replace guest IDs - GDPR compliance
+        guest_id_pattern = r'\b(?:Guest|Customer|Client)\s*ID\s*[#]?\s*(\d+)\b'
+        anonymized_text = re.sub(guest_id_pattern, '[GUEST_ID]', anonymized_text)
+        
+        # Step 3: Replace booking references - GDPR compliance
+        booking_pattern = r'\b(?:REF|#|Booking|Reservation|Confirmation)[\s\-]?\d+[A-Za-z0-9]*\b'
+        anonymized_text = re.sub(booking_pattern, '[BOOKING_REFERENCE]', anonymized_text)
+        
+        # Step 4: Replace email addresses - GDPR compliance
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        anonymized_text = re.sub(email_pattern, '[EMAIL]', anonymized_text)
+        
+        # Step 5: Replace phone numbers - GDPR compliance
+        phone_pattern = r'\+?[\d\s\-\(\)]{7,}'
+        anonymized_text = re.sub(phone_pattern, '[PHONE]', anonymized_text)
+        
+        # Step 6: Replace dates and times (if not preserved)
+        if not preserve_dates:
+            date_pattern = r'\b\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}\b'
+            anonymized_text = re.sub(date_pattern, '[DATE]', anonymized_text)
+        
+        if not preserve_times:
+            time_pattern = r'\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\b'
+            anonymized_text = re.sub(time_pattern, '[TIME]', anonymized_text)
+        
+        # Step 7: Use spaCy for additional name detection (fallback) - GDPR compliance
         nlp = get_nlp()
         if nlp:
             doc = nlp(anonymized_text)
-            for ent in doc.ents:
+            # Sort entities by length (longest first) to avoid partial replacements
+            entities = sorted(doc.ents, key=lambda x: len(x.text), reverse=True)
+            
+            for ent in entities:
                 if ent.label_ == "PERSON":
-                    anonymized_text = anonymized_text.replace(ent.text, self.replacements['name'])
-                elif ent.label_ == "ORG":
-                    anonymized_text = anonymized_text.replace(ent.text, self.replacements['company'])
-                elif ent.label_ in ["GPE", "LOC"]:
-                    anonymized_text = anonymized_text.replace(ent.text, self.replacements['location'])
+                    # Only replace if it looks like a name and hasn't been replaced already
+                    if ent.text not in ['[CLIENT_NAME]', '[GUEST_ID]', '[BOOKING_REFERENCE]']:
+                        anonymized_text = anonymized_text.replace(ent.text, '[CLIENT_NAME]')
         
-        # Additional custom patterns for hotel-specific data
-        hotel_patterns = {
-            'room_number': r'\b(?:Room|Rm)\s*[#]?\s*(\d+)\b',
-            'guest_id': r'\b(?:Guest|Customer)\s*ID\s*[#]?\s*(\d+)\b',
-            'reservation_id': r'\b(?:Reservation|Booking)\s*ID\s*[#]?\s*(\d+)\b',
-            'check_in': r'\b(?:Check[-\s]?in|Arrival)\s*:\s*([^\n]+)\b',
-            'check_out': r'\b(?:Check[-\s]?out|Departure)\s*:\s*([^\n]+)\b',
-        }
+        # Step 8: Additional name patterns for GDPR compliance
+        # Look for capitalized words that might be names (but not room numbers)
+        name_patterns = [
+            r'\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\b',  # Two capitalized words
+        ]
         
-        for pattern_name, pattern in hotel_patterns.items():
-            replacement = f'[{pattern_name.upper().replace("_", " ")}]'
-            anonymized_text = re.sub(pattern, replacement, anonymized_text, flags=re.IGNORECASE)
+        for pattern in name_patterns:
+            potential_names = re.findall(pattern, anonymized_text)
+            for name in potential_names:
+                # Skip if it's already been replaced or contains common non-name words
+                if (name not in ['[CLIENT_NAME]', '[GUEST_ID]', '[BOOKING_REFERENCE]', '[EMAIL]', '[PHONE]'] and
+                    not any(word in name.lower() for word in ['room', 'floor', 'suite', 'hotel', 'guest', 'check', 'booking', 'maintenance', 'service', 'guest', 'relations', 'report', 'additional', 'notes'])):
+                    anonymized_text = anonymized_text.replace(name, '[CLIENT_NAME]')
         
         return anonymized_text
     

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CasesPage from './pages/CasesPage';
 import FollowupsPage from './pages/FollowupsPage';
+import RAGPage from './pages/RAGPage';
 import Navigation from './components/Navigation';
 import AuthModal from './components/AuthModal';
 import { isAuthenticated, getCurrentUser, logout } from './services/api';
@@ -67,6 +68,14 @@ const AppLayout = ({ user, onLogout }) => {
           element={
             <ProtectedRoute user={user}>
               <FollowupsPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/rag" 
+          element={
+            <ProtectedRoute user={user}>
+              <RAGPage />
             </ProtectedRoute>
           } 
         />

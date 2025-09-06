@@ -1,68 +1,66 @@
 # Guest Relations API Backend
 
-A clean, production-ready FastAPI backend for managing guest relations cases, document processing, and AI-powered workflows.
+A production-ready FastAPI backend for managing guest relations cases with AI-powered document processing.
 
-## Architecture Overview
-
-The backend follows a clean, modular architecture with clear separation of concerns:
+## Architecture
 
 ```
 backend/
 ├── main.py                 # FastAPI application entry point
 ├── models.py               # SQLAlchemy database models
 ├── db.py                   # Database connection and session management
-├── logging_config.py       # Logging configuration
 ├── requirements.txt        # Python dependencies
 ├── alembic.ini            # Database migration configuration
 ├── routers/               # API route handlers
 │   ├── auth_route.py      # Authentication & authorization
 │   ├── user_router.py     # User management
-│   ├── case_router.py     # Case CRUD + manual input + templates
-│   ├── document_router.py # Document processing + workflow
+│   ├── case_router.py     # Case CRUD operations
+│   ├── document_router.py # Document processing
 │   ├── followup_router.py # Followup management
-│   ├── task_router.py     # Task management
 │   └── anonymization_router.py # Data anonymization
 ├── services/              # Business logic layer
 │   ├── ai_service.py      # AI-powered suggestions
 │   ├── case_service.py    # Case business logic
 │   ├── document_service.py # Document processing
-│   ├── case_parser_service.py # Case extraction from documents
 │   ├── followup_service.py # Followup business logic
-│   ├── task_service.py    # Task business logic
 │   ├── user_service.py    # User business logic
 │   ├── anonymization_service.py # Data anonymization
-│   ├── daily_service.py   # Daily operations
 │   └── security.py        # Security utilities
 └── schemas/               # Pydantic models for API
     ├── case.py            # Case data models
     ├── followup.py        # Followup data models
-    ├── task.py            # Task data models
     └── user.py            # User data models
 ```
 
 ## Core Features
 
-### 1. Document Processing
-- **PDF & DOCX Support**: Upload and process various document formats
-- **AI-Powered Parsing**: Extract case information using advanced NLP
-- **Workflow Automation**: Complete pipeline from document to database
+- **Document Processing**: PDF/DOCX upload and AI-powered parsing
+- **Case Management**: Full CRUD operations with templates
+- **AI Integration**: Smart suggestions and document analysis
+- **Security**: JWT authentication with role-based access
+- **Database**: SQLAlchemy ORM with Alembic migrations
 
-### 2. Case Management
-- **CRUD Operations**: Full case lifecycle management
-- **Manual Input**: Create cases when documents don't contain sufficient data
-- **Templates**: Predefined case templates for common scenarios
-- **Bulk Operations**: Handle multiple cases efficiently
+## Quick Start
 
-### 3. AI Integration
-- **Smart Suggestions**: AI-powered feedback for case management
-- **Document Analysis**: Intelligent parsing of unstructured documents
-- **Workflow Optimization**: Automated case creation and followup generation
+### Prerequisites
+- Python 3.11
+- Supabase PostgreSQL database
+- OpenAI API key
 
-### 4. Security & Privacy
-- **Authentication**: JWT-based user authentication
-- **Authorization**: Role-based access control
-- **Data Anonymization**: GDPR-compliant data handling
-- **Audit Logging**: Comprehensive activity tracking
+### Installation
+```bash
+pip install -r requirements.txt
+
+# Copy environment template
+cp env.example .env
+# Edit .env with your actual values
+
+# Setup database
+alembic upgrade head
+
+# Run development server
+python main.py
+```
 
 ## API Endpoints
 
@@ -70,104 +68,38 @@ backend/
 - `POST /api/auth/login` - User login
 - `POST /api/auth/register` - User registration
 
-### Documents
-- `POST /api/documents/upload` - Upload and process documents
-- `POST /api/documents/workflow` - Complete workflow automation
-
 ### Cases
-- `GET /api/cases/` - List all cases
-- `POST /api/cases/` - Create single case
-- `POST /api/cases/bulk` - Create multiple cases
-- `POST /api/cases/manual` - Manual case creation
-- `POST /api/cases/template/{name}` - Case from template
+- `GET /api/cases` - List all cases
+- `POST /api/cases` - Create new case
+- `GET /api/cases/{id}` - Get case details
+- `PUT /api/cases/{id}` - Update case
+- `DELETE /api/cases/{id}` - Delete case
+
+### Documents
+- `POST /api/documents/upload` - Upload document
+- `GET /api/documents/{id}` - Get document details
 
 ### Followups
-- `GET /api/followups/` - List followups
-- `POST /api/followups/` - Create followup
+- `GET /api/followups` - List followups
+- `POST /api/followups` - Create followup
+- `PUT /api/followups/{id}` - Update followup
 
-### Tasks
-- `GET /api/tasks/` - List tasks
-- `POST /api/tasks/` - Create task
+## Environment Variables
 
-## Getting Started
+Copy `env.example` to `.env` and configure:
 
-### Prerequisites
-- Python 3.8+
-- Supabase PostgreSQL database
-- OpenAI API key (for AI features)
-
-### Installation
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-### Environment Setup
-Create a `.env` file with:
 ```env
-# Supabase Database Configuration
-DATABASE_URL=your_supabase_postgresql_url
-
-# Application Configuration
-OPENAI_API_KEY=your_openai_key
-SECRET_KEY=your_secret_key
+DATABASE_URL=your_supabase_database_url
+OPENAI_API_KEY=your_openai_api_key
+SECRET_KEY=your_jwt_secret_key
 ENVIRONMENT=development
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
 ```
 
-### Database Setup
-```bash
-alembic upgrade head
-```
+## Development
 
-### Running the Application
-```bash
-python main.py
-```
-
-The API will be available at `http://localhost:8000` with interactive docs at `/docs`.
-
-## Development Guidelines
-
-### Code Quality
-- **Type Hints**: All functions use Python type hints
-- **Documentation**: Comprehensive docstrings for all endpoints
-- **Error Handling**: Consistent error responses with proper HTTP status codes
-- **Validation**: Pydantic models for request/response validation
-
-### Testing
-- Unit tests for services
-- Integration tests for API endpoints
-- Database migration testing
-
-### Security
-- Input validation and sanitization
-- SQL injection prevention
-- XSS protection
-- Rate limiting (production)
-
-## Production Deployment
-
-### Railway/Render Deployment
-The application is configured for Railway deployment with:
-- Environment-based configuration
-- CORS settings for production
-- Trusted host middleware
-- Static file serving
-
-### Monitoring
-- Structured logging
-- Health check endpoints
-- Performance metrics
-- Error tracking
-
-## Contributing
-
-1. Follow the existing code structure
-2. Add comprehensive tests
-3. Update documentation
-4. Use conventional commit messages
-5. Ensure all tests pass before submitting
-
-## License
-
-This project is licensed under the MIT License.
+- Interactive API docs available at `/docs`
+- Follow PEP 8 coding standards
+- Use type hints throughout
+- Implement proper error handling

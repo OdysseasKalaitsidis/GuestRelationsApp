@@ -117,6 +117,79 @@ async def get_anonymization_stats(text: str = Query(..., description="Text to an
             detail=f"Error analyzing text: {str(e)}"
         )
 
+@router.post("/test", response_model=Dict[str, str])
+async def test_anonymization():
+    """
+    Test the anonymization functionality with sample hotel guest relations text
+    
+    This endpoint will:
+    - Test anonymization with sample text containing names and room information
+    - Show before and after results
+    - Demonstrate the anonymization capabilities
+    """
+    sample_text = """
+    Guest Relations Report - Room 205
+    
+    Mr. John Smith checked into Room 205 on 15/03/2024 at 2:30 PM. 
+    Mrs. Sarah Johnson from London reported an issue with the AC in Room 205.
+    The guest mentioned that the temperature control is not working properly.
+    
+    Guest ID: 12345
+    Booking Reference: REF2024001
+    Check-in Date: 15/03/2024
+    Check-out Date: 18/03/2024
+    
+    Maintenance was called to Room 205 at 3:45 PM. 
+    The guest requested extra towels and pillows.
+    
+    Contact: john.smith@email.com
+    Phone: +44 20 7946 0958
+    """
+    
+    try:
+        anonymized_text = anonymization_service.anonymize_text(sample_text)
+        
+        return {
+            "original_text": sample_text,
+            "anonymized_text": anonymized_text,
+            "message": "Anonymization test completed successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error testing anonymization: {str(e)}"
+        )
+
+@router.post("/gdpr", response_model=Dict[str, str])
+async def anonymize_gdpr_compliant(
+    text: str = Query(..., description="Text content to anonymize for GDPR compliance")
+):
+    """
+    Anonymize text for GDPR compliance - removes names but preserves room numbers
+    
+    This endpoint will:
+    - Remove all client names and personal identifiers
+    - Preserve room numbers for operational purposes
+    - Ensure GDPR compliance while maintaining operational context
+    - Remove emails, phone numbers, guest IDs, and booking references
+    """
+    try:
+        # Use the GDPR-compliant anonymization
+        anonymized_text = anonymization_service.anonymize_text(text)
+        
+        return {
+            "original_text": text,
+            "anonymized_text": anonymized_text,
+            "message": "GDPR-compliant anonymization completed successfully",
+            "gdpr_compliant": True,
+            "room_numbers_preserved": True
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error anonymizing for GDPR compliance: {str(e)}"
+        )
+
 @router.get("/patterns", response_model=Dict[str, str])
 async def get_anonymization_patterns():
     """

@@ -60,11 +60,11 @@ async def upload_document(file: UploadFile = File(...)):
     """
     start_time = time.time()
     
-    # Check file extension
-    if not file.filename.lower().endswith(('.pdf', '.docx')):
+    # Check file extension - temporarily allow .txt for testing
+    if not file.filename.lower().endswith(('.pdf', '.docx', '.txt')):
         raise HTTPException(
             status_code=400, 
-            detail="File must be a PDF (.pdf) or Word document (.docx)"
+            detail="File must be a PDF (.pdf), Word document (.docx), or text file (.txt) for testing"
         )
     
     try:

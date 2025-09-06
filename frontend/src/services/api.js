@@ -82,24 +82,10 @@ export const uploadPDF = async (file) => {
 };
 
 // Streamlined Workflow (PDF → AI → Cases → Followups) - Automated
+// Note: This endpoint was causing 405 errors, using workflow endpoint instead
 export const streamlinedWorkflow = async (file, createCases = false) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("create_cases", createCases.toString());
-
-  const res = await fetch(`${BASE_URL}/documents/streamlined-workflow`, {
-    method: "POST",
-    headers: {
-      ...getAuthHeaders(),
-    },
-    body: formData,
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Streamlined workflow failed: ${res.statusText}`);
-  }
-  
-  return res.json();
+  // Fallback to the working workflow endpoint
+  return completeWorkflow(file, createCases);
 };
 
 // Complete Workflow (PDF → AI → Cases → Followups)
@@ -457,6 +443,132 @@ export const internalDatabaseStatus = async () => {
   
   if (!res.ok) {
     throw new Error(`Internal database status check failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+// RAG (Retrieval-Augmented Generation) Functions
+export const uploadTrainingDocuments = async (files) => {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+
+  const res = await fetch(`${BASE_URL}/rag/upload-documents`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body: formData,
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Training document upload failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+export const processEmail = async (inputText, context = '') => {
+  const res = await fetch(`${BASE_URL}/rag/process-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({
+      input_text: inputText,
+      context: context
+    }),
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Email processing failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+export const getCollectionStats = async () => {
+  const res = await fetch(`${BASE_URL}/rag/stats`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Failed to get collection stats: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+export const clearCollection = async () => {
+  const res = await fetch(`${BASE_URL}/rag/clear-collection`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Failed to clear collection: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+export const testRAGSystem = async () => {
+  const res = await fetch(`${BASE_URL}/rag/test-rag`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+  
+  if (!res.ok) {
+    throw new Error(`RAG system test failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+// Chat with AI Assistant
+export const chatWithAI = async (messages) => {
+  const res = await fetch(`${BASE_URL}/rag/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({
+      messages: messages
+    }),
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Chat failed: ${res.statusText}`);
+  }
+  
+  return res.json();
+};
+
+// Extract Shift Summary
+export const extractShiftSummary = async (notes) => {
+  const res = await fetch(`${BASE_URL}/rag/extract-shift-summary`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({
+      notes: notes
+    }),
+  });
+  
+  if (!res.ok) {
+    throw new Error(`Shift summary extraction failed: ${res.statusText}`);
   }
   
   return res.json();

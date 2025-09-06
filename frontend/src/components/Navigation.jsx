@@ -22,9 +22,10 @@ const Navigation = ({ user, onLogout }) => {
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
               <Link
                 to="/cases"
-                className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center r-3 py-2 border-b-2 text-sm font-medium transition-colors ${
                   isActive('/cases')
                     ? 'border-secondary text-secondary'
+                    
                     : 'border-transparent text-third hover:border-third hover:text-main'
                 }`}
               >
@@ -39,6 +40,16 @@ const Navigation = ({ user, onLogout }) => {
                 }`}
               >
                 💬 Followups
+              </Link>
+              <Link
+                to="/rag"
+                className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors ${
+                  isActive('/rag')
+                    ? 'border-secondary text-secondary'
+                    : 'border-transparent text-third hover:border-third hover:text-main'
+                }`}
+              >
+                🤖 AI Assistant
               </Link>
             </div>
           </div>

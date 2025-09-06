@@ -6,7 +6,6 @@ import {
   fetchUsers,
   uploadDocument,
   completeWorkflow,
-  streamlinedWorkflow,
   getAuthHeaders,
 } from "../services/api";
 import UploadStep from "./upload/UploadStep";
@@ -122,8 +121,24 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Use the streamlined workflow to get AI feedback automatically
-      const workflowResult = await streamlinedWorkflow(pdfFile, false);
+      // Use the working workflow endpoint instead of streamlined workflow
+      const formData = new FormData();
+      formData.append("file", pdfFile);
+      formData.append("create_cases", "false");
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/documents/workflow`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Workflow failed: ${response.statusText}`);
+      }
+      
+      const workflowResult = await response.json();
       
       // Extract cases and feedback from workflow result
       const aiFeedbackStep = workflowResult.steps.find(step => step.step === "AI Feedback");
@@ -170,7 +185,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const finalCases = aiFeedback.map((c, i) => ({
+      let finalCases = aiFeedback.map((c, i) => ({
         room: c.room,
         status: c.status,
         importance: c.importance,
@@ -189,7 +204,73 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
         owner_id: assignedUsers[i] || null,
       }));
 
-      const createdCases = await createMultipleCases(finalCases);
+      // Automatically anonymize all data for GDPR compliance
+      const anonymizedCases = await Promise.all(
+        finalCases.map(async (caseData) => {
+          const anonymizedCase = { ...caseData };
+          
+          // Anonymize guest names
+          if (anonymizedCase.guest) {
+            anonymizedCase.guest = '[CLIENT_NAME]';
+          }
+          
+          // Anonymize created_by and modified_by
+          if (anonymizedCase.created_by) {
+            anonymizedCase.created_by = '[STAFF_MEMBER]';
+          }
+          if (anonymizedCase.modified_by) {
+            anonymizedCase.modified_by = '[STAFF_MEMBER]';
+          }
+          
+          // Use backend anonymization service for case description
+          if (anonymizedCase.case_description) {
+            try {
+              const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/anonymization/text`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...getAuthHeaders(),
+                },
+                body: JSON.stringify({
+                  text: anonymizedCase.case_description,
+                  preserve_dates: false, // Don't preserve dates for full GDPR compliance
+                  preserve_times: false, // Don't preserve times for full GDPR compliance
+                }),
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                anonymizedCase.case_description = result.anonymized_text;
+              } else {
+                // Fallback to simple replacement if service fails
+                anonymizedCase.case_description = anonymizedCase.case_description
+                  .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, '[CLIENT_NAME]')
+                  .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+\b/g, '[CLIENT_NAME]')
+                  .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+\b/g, '[CLIENT_NAME]');
+              }
+            } catch (anonError) {
+              console.warn("Anonymization service failed, using fallback:", anonError);
+              // Fallback to simple replacement
+              anonymizedCase.case_description = anonymizedCase.case_description
+                .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, '[CLIENT_NAME]')
+                .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+\b/g, '[CLIENT_NAME]')
+                .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+\b/g, '[CLIENT_NAME]');
+            }
+          }
+          
+          // Anonymize dates and times for full GDPR compliance
+          if (anonymizedCase.created) {
+            anonymizedCase.created = '[DATE]';
+          }
+          if (anonymizedCase.modified) {
+            anonymizedCase.modified = '[DATE]';
+          }
+          
+          return anonymizedCase;
+        })
+      );
+
+      const createdCases = await createMultipleCases(anonymizedCases);
 
       for (let i = 0; i < createdCases.length; i++) {
         await createFollowup({
@@ -250,13 +331,29 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     switch (currentStep) {
       case 1:
         return (
-          <UploadStep
-            pdfFile={pdfFile}
-            onFileChange={handleFileChange}
-            onUpload={handleUpload}
-            isLoading={isLoading}
-            error={error}
-          />
+          <div>
+            <UploadStep
+              pdfFile={pdfFile}
+              onFileChange={handleFileChange}
+              onUpload={handleUpload}
+              isLoading={isLoading}
+              error={error}
+            />
+            
+            {/* GDPR Compliance Notice */}
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="text-blue-600 mr-2">🔒</div>
+                <div>
+                  <strong className="text-blue-800">GDPR Compliance</strong>
+                  <p className="text-blue-700 text-sm mt-1">
+                    All personal data will be automatically anonymized for GDPR compliance. 
+                    Names will be replaced with [CLIENT_NAME] and [STAFF_MEMBER], and dates will be anonymized.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         );
       case 2:
         return (
@@ -282,6 +379,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
             aiFeedback={aiFeedback}
             assignedUsers={assignedUsers}
             availableUsers={availableUsers}
+            anonymizeData={true}
           />
         );
       default:

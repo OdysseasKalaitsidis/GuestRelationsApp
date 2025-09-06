@@ -204,76 +204,75 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         print(f"DEBUG: Processing block {i+1}, length: {len(block)}")
         print(f"DEBUG: Block content: {block[:200]}...")
         
-        # Extract case information using improved regex patterns
-        # Look for Created date in multiple formats - the issue might be that "Created" is on a separate line
-        created_match = re.search(r'Created\s*\n\s*(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', block)
-        if not created_match:
-            # Try alternative format with dot separator
-            created_match = re.search(r'Created\s*\n\s*(\d{2}\.\d{2}\.\d{4})', block)
-        if not created_match:
-            # Try without newline
-            created_match = re.search(r'Created\s+(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', block)
-        if not created_match:
-            # Try with dot separator without newline
-            created_match = re.search(r'Created\s+(\d{2}\.\d{2}\.\d{4})', block)
+        # Extract case information using patterns that match the actual PDF structure
+        # Based on test output, the structure is: Guest: Name | In/Out: dates | Source: source | Member: level
         
-        guest_match = re.search(r'Guest\s*\n\s*([^\n\r]+)', block)
+        # Extract guest name - look for "Guest: Name" pattern
+        guest_match = re.search(r'Guest:\s*([^|]+)', block)
         if not guest_match:
-            guest_match = re.search(r'Guest\s+([^\n\r]+)', block)
-            
-        # Use pre-extracted status and type information
-        status_value = None
-        type_value = None
-        if status_type_info:
-            status_key = f'status_{case_index}'
-            type_key = f'type_{case_index}'
-            if status_key in status_type_info:
-                status_value = status_type_info[status_key]
-            if type_key in status_type_info:
-                type_value = status_type_info[type_key]
+            # Try alternative pattern
+            guest_match = re.search(r'Guest\s+([A-Za-z\s]+)', block)
         
-        # Fallback to regex extraction if pre-extracted info not available
-        if not status_value:
-            status_match = re.search(r'Status\s*\n\s*(\w+)', block)
-            if not status_match:
-                status_match = re.search(r'Status\s+(\w+)', block)
-            if status_match:
-                status_value = status_match.group(1)
-        
-        if not type_value:
-            case_type_match = re.search(r'Type\s*\n\s*(\w+)', block)
-            if not case_type_match:
-                case_type_match = re.search(r'Type\s+(\w+)', block)
-            if case_type_match:
-                type_value = case_type_match.group(1)
-            
-        created_by_match = re.search(r'Created by\s*\n\s*([^\n\r]+)', block)
-        if not created_by_match:
-            created_by_match = re.search(r'Created by\s+([^\n\r]+)', block)
-            
-        room_match = re.search(r'Room\s*\n\s*(\d+)', block)
+        # Extract room number - look for "Room: number" pattern  
+        room_match = re.search(r'Room:\s*(\d+)', block)
         if not room_match:
+            # Try alternative pattern
             room_match = re.search(r'Room\s+(\d+)', block)
-            
-        importance_match = re.search(r'Importance\s*\n\s*(\w+)', block)
+        
+        # Extract status - look for "Status: status" pattern
+        status_match = re.search(r'Status:\s*(\w+)', block)
+        if not status_match:
+            status_match = re.search(r'Status\s+(\w+)', block)
+        
+        # Extract importance - look for "Importance: level" pattern
+        importance_match = re.search(r'Importance:\s*(\w+)', block)
         if not importance_match:
             importance_match = re.search(r'Importance\s+(\w+)', block)
-            
-        modified_match = re.search(r'Modified\s*\n\s*(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', block)
-        if not modified_match:
-            modified_match = re.search(r'Modified\s+(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', block)
-            
-        modified_by_match = re.search(r'Modified by\s*\n\s*([^\n\r]+)', block)
-        if not modified_by_match:
-            modified_by_match = re.search(r'Modified by\s+([^\n\r]+)', block)
-            
-        source_match = re.search(r'Source\s*\n\s*([^\n\r]+)', block)
+        
+        # Extract type - look for "Type: type" pattern
+        type_match = re.search(r'Type:\s*(\w+)', block)
+        if not type_match:
+            type_match = re.search(r'Type\s+(\w+)', block)
+        
+        # Extract source - look for "Source: source" pattern
+        source_match = re.search(r'Source:\s*([^|]+)', block)
         if not source_match:
             source_match = re.search(r'Source\s+([^\n\r]+)', block)
-            
-        membership_match = re.search(r'Membership\s*\n\s*([^\n\r]+)', block)
+        
+        # Extract membership - look for "Member: level" pattern
+        membership_match = re.search(r'Member:\s*([^|]+)', block)
         if not membership_match:
-            membership_match = re.search(r'Membership\s+([^\n\r]+)', block)
+            membership_match = re.search(r'Member\s+([^\n\r]+)', block)
+        
+        # Extract in/out dates - look for "In/Out: dates" pattern
+        in_out_match = re.search(r'In/Out:\s*([^|]+)', block)
+        if not in_out_match:
+            in_out_match = re.search(r'In/Out\s+([^\n\r]+)', block)
+        
+        # Extract modified date - look for "Updated: date" pattern
+        modified_match = re.search(r'Updated:\s*([^|]+)', block)
+        if not modified_match:
+            modified_match = re.search(r'Updated\s+([^\n\r]+)', block)
+        
+        # Extract modified by - look for staff name patterns
+        modified_by_match = re.search(r'([A-Za-z\s]+)\s*$', block)
+        if modified_by_match:
+            # Check if it looks like a staff name (not too long, contains letters)
+            potential_name = modified_by_match.group(1).strip()
+            if len(potential_name) < 50 and re.match(r'^[A-Za-z\s]+$', potential_name):
+                modified_by_match = re.search(r'([A-Za-z\s]+)\s*$', block)
+            
+        # Extract values from the matches
+        guest_value = guest_match.group(1).strip() if guest_match else None
+        room_value = int(room_match.group(1)) if room_match else None
+        status_value = status_match.group(1).strip() if status_match else None
+        importance_value = importance_match.group(1).strip() if importance_match else None
+        type_value = type_match.group(1).strip() if type_match else None
+        source_value = source_match.group(1).strip() if source_match else None
+        membership_value = membership_match.group(1).strip() if membership_match else None
+        in_out_value = in_out_match.group(1).strip() if in_out_match else None
+        modified_value = modified_match.group(1).strip() if modified_match else None
+        modified_by_value = modified_by_match.group(1).strip() if modified_by_match else None
         
         # Extract case description as a separate section
         case_match = None
@@ -343,19 +342,17 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             in_out_match = re.search(r'IN/OUT\s+([^\n\r]+)', block)
         
         # Create case object with guaranteed title and more fields
-        guest_name = guest_match.group(1).strip() if guest_match else None
-        room_number = room_match.group(1) if room_match else None
-        
+
         # Clean up guest name - remove pipe-separated values that indicate malformed data
-        if guest_name and '|' in guest_name:
+        if guest_value and '|' in guest_value:
             # Take only the first part before the pipe
-            guest_name = guest_name.split('|')[0].strip()
+            guest_value = guest_value.split('|')[0].strip()
         
         # Ensure we have a valid title - use guest name, room, case description, or fallback
-        if guest_name and len(guest_name) < 50:  # Avoid very long names that might be malformed
-            title = guest_name
-        elif room_number:
-            title = f"Room {room_number} Case"
+        if guest_value and len(guest_value) < 50:  # Avoid very long names that might be malformed
+            title = guest_value
+        elif room_value:
+            title = f"Room {room_value} Case"
         elif case_match and case_match.group(1).strip():
             # Use first 50 characters of case description as title
             desc = case_match.group(1).strip()
@@ -364,20 +361,20 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             title = "Untitled Case"
         
         case = {
-            "created": created_match.group(1) if created_match else None,
-            "guest": guest_name,
+            "created": None,  # Not available in this format
+            "guest": guest_value,
             "status": status_value,
-            "created_by": created_by_match.group(1).strip() if created_by_match else None,
-            "room": room_number,
-            "importance": importance_match.group(1) if importance_match else None,
-            "modified": modified_match.group(1) if modified_match else None,
-            "modified_by": modified_by_match.group(1).strip() if modified_by_match else None,
-            "source": source_match.group(1).strip() if source_match else None,
-            "membership": membership_match.group(1).strip() if membership_match else None,
+            "created_by": None,  # Not available in this format
+            "room": room_value,
+            "importance": importance_value,
+            "modified": modified_value,
+            "modified_by": modified_by_value,
+            "source": source_value,
+            "membership": membership_value,
             "type": type_value,
             "case_description": case_match.group(1).strip() if case_match else None,
             "action": action_match.group(1).strip() if action_match else None,
-            "in_out": in_out_match.group(1).strip() if in_out_match else None,
+            "in_out": in_out_value,
             "title": title  # Always guaranteed to have a value
         }
         
@@ -415,6 +412,18 @@ def process_document(file: UploadFile) -> list:
             raw_text = extract_text_from_pdf(file)
         elif file.filename.lower().endswith('.docx'):
             raw_text = extract_text_from_docx(file)
+        elif file.filename.lower().endswith('.txt'):
+            # For text files, just read the content directly
+            try:
+                raw_text = file.file.read().decode('utf-8')
+            except UnicodeDecodeError:
+                # Try different encodings if utf-8 fails
+                file.file.seek(0)  # Reset file pointer
+                try:
+                    raw_text = file.file.read().decode('latin-1')
+                except:
+                    file.file.seek(0)
+                    raw_text = file.file.read().decode('cp1252')
         else:
             raise ValueError(f"Unsupported file type: {file.filename}")
         
@@ -422,16 +431,8 @@ def process_document(file: UploadFile) -> list:
         if not raw_text or len(raw_text.strip()) < 10:
             return []
         
-        # Try AI parsing first (much more reliable and faster for complex documents)
-        try:
-            from services.ai_service import parse_document_with_ai
-            ai_cases = parse_document_with_ai(raw_text)
-            
-            if ai_cases and len(ai_cases) > 0:
-                return ai_cases
-        except Exception as e:
-            # Silently fall back to regex parsing
-            pass
+        # Skip AI parsing - use regex parsing directly
+        # AI parsing disabled per user preference
         
         # Fallback to optimized regex parsing
         status_type_info = extract_status_type_info(raw_text)
@@ -472,5 +473,16 @@ def extract_text_from_document(file: UploadFile) -> str:
         return extract_text_from_pdf(file)
     elif file.filename.lower().endswith('.docx'):
         return extract_text_from_docx(file)
+    elif file.filename.lower().endswith('.txt'):
+        try:
+            return file.file.read().decode('utf-8')
+        except UnicodeDecodeError:
+            # Try different encodings if utf-8 fails
+            file.file.seek(0)  # Reset file pointer
+            try:
+                return file.file.read().decode('latin-1')
+            except:
+                file.file.seek(0)
+                return file.file.read().decode('cp1252')
     else:
         raise ValueError(f"Unsupported file type: {file.filename}")

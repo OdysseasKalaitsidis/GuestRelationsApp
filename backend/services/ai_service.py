@@ -74,6 +74,21 @@ def parse_document_with_ai(text: str) -> List[Dict[str, Any]]:
                 cases = [parsed_result]  # Single case
                 
             print(f"AI successfully parsed {len(cases)} cases")
+            
+            # Ensure all cases have required fields
+            for case in cases:
+                if not case.get('title'):
+                    # Set title based on available data
+                    if case.get('guest'):
+                        case['title'] = case['guest']
+                    elif case.get('room'):
+                        case['title'] = f"Room {case['room']} Case"
+                    elif case.get('case_description'):
+                        desc = case['case_description'][:50]
+                        case['title'] = desc + "..." if len(case['case_description']) > 50 else desc
+                    else:
+                        case['title'] = "Untitled Case"
+            
             return cases
             
         except json.JSONDecodeError as e:
@@ -93,6 +108,21 @@ def parse_document_with_ai(text: str) -> List[Dict[str, Any]]:
                     else:
                         cases = [parsed_result]
                     print(f"AI successfully parsed {len(cases)} cases from partial JSON")
+                    
+                    # Ensure all cases have required fields
+                    for case in cases:
+                        if not case.get('title'):
+                            # Set title based on available data
+                            if case.get('guest'):
+                                case['title'] = case['guest']
+                            elif case.get('room'):
+                                case['title'] = f"Room {case['room']} Case"
+                            elif case.get('case_description'):
+                                desc = case['case_description'][:50]
+                                case['title'] = desc + "..." if len(case['case_description']) > 50 else desc
+                            else:
+                                case['title'] = "Untitled Case"
+                    
                     return cases
             except:
                 pass

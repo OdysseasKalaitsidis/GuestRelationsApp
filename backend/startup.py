@@ -55,6 +55,39 @@ def test_database_connectivity():
         print(f"⚠️ Warning: Could not test database connectivity: {e}")
         return False
 
+def setup_ai_vectorstore():
+    """Setup AI vectorstore if it doesn't exist"""
+    try:
+        vectorstore_path = "vectorstore"
+        data_folder = "data"
+        
+        # Check if vectorstore already exists
+        if os.path.exists(vectorstore_path):
+            print("✅ AI vectorstore already exists")
+            return True
+        
+        # Check if data folder exists
+        if not os.path.exists(data_folder):
+            print("⚠️ No data folder found - AI assistant will start without training documents")
+            return True
+        
+        print("🤖 Setting up AI vectorstore from training documents...")
+        
+        # Import and run the vectorstore setup
+        from setup_ai_production import build_vectorstore_from_data_folder
+        
+        if build_vectorstore_from_data_folder():
+            print("✅ AI vectorstore setup completed successfully")
+            return True
+        else:
+            print("⚠️ AI vectorstore setup failed - AI assistant will start without training documents")
+            return True
+            
+    except Exception as e:
+        print(f"⚠️ Warning: AI vectorstore setup failed: {e}")
+        print("AI assistant will start without training documents")
+        return True
+
 def main():
     """Main startup function"""
     print("🚀 Starting Guest Relations API...")
@@ -66,6 +99,9 @@ def main():
     # Test database connectivity
     if not test_database_connectivity():
         print("⚠️ Warning: Database connectivity test failed. Some features may not work.")
+    
+    # Setup AI vectorstore
+    setup_ai_vectorstore()
     
     # Start the application
     print("🎯 Starting uvicorn server...")
