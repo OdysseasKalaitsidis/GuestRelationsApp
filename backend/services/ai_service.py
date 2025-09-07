@@ -79,9 +79,7 @@ def parse_document_with_ai(text: str) -> List[Dict[str, Any]]:
             for case in cases:
                 if not case.get('title'):
                     # Set title based on available data
-                    if case.get('guest'):
-                        case['title'] = case['guest']
-                    elif case.get('room'):
+                    if case.get('room'):
                         case['title'] = f"Room {case['room']} Case"
                     elif case.get('case_description'):
                         desc = case['case_description'][:50]
@@ -113,9 +111,7 @@ def parse_document_with_ai(text: str) -> List[Dict[str, Any]]:
                     for case in cases:
                         if not case.get('title'):
                             # Set title based on available data
-                            if case.get('guest'):
-                                case['title'] = case['guest']
-                            elif case.get('room'):
+                            if case.get('room'):
                                 case['title'] = f"Room {case['room']} Case"
                             elif case.get('case_description'):
                                 desc = case['case_description'][:50]

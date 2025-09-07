@@ -316,7 +316,7 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             
         # Extract values from the matches
         guest_value = guest_match.group(1).strip() if guest_match else None
-        room_value = int(room_match.group(1)) if room_match else None
+        room_value = room_match.group(1).strip() if room_match else None
         status_value = status_match.group(1).strip() if status_match else None
         importance_value = importance_match.group(1).strip() if importance_match else None
         type_value = type_match.group(1).strip() if type_match else None
@@ -412,7 +412,6 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         
         case = {
             "created": created_match.group(1).strip() if created_match else None,
-            "guest": guest_value,
             "status": status_value,
             "created_by": created_by_match.group(1).strip() if created_by_match else None,
             "room": room_value,
@@ -435,10 +434,8 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             print(f"DEBUG: Found case description: {case_match.group(1).strip()[:100]}...")
         
         # More lenient validation - accept cases with any meaningful information
-        # Check if we have at least one of: guest name, room number, case description, or title
+        # Check if we have at least one of: room number, case description, or title
         has_meaningful_data = (
-            (case["guest"] and len(case["guest"]) < 100 and '|' not in case["guest"] and 
-             case["guest"] != "Services Domes of Corfu" and case["guest"] != "Guest Services Domes of Corfu") or
             (case["room"] and str(case["room"]).strip()) or
             (case["case_description"] and len(case["case_description"]) > 10) or
             (case["title"] and case["title"] != "Untitled Case" and len(case["title"]) > 5)

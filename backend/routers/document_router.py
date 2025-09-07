@@ -24,7 +24,6 @@ class CaseData(BaseModel):
     type: Optional[str] = None
     title: str
     action: Optional[str] = None
-    guest: Optional[str] = None
     created: Optional[str] = None
     created_by: Optional[str] = None
     modified: Optional[str] = None
@@ -113,7 +112,6 @@ async def upload_document(file: UploadFile = File(...)):
                 type=case.get('type'),
                 title=case.get('title', 'Untitled Case'),
                 action=case.get('action'),
-                guest=case.get('guest'),
                 created=case.get('created'),
                 created_by=case.get('created_by'),
                 modified=case.get('modified'),
@@ -278,7 +276,6 @@ async def streamlined_workflow(
                     type=case_data.get("type") or "other",
                     title=title,
                     action=case_data.get("action") or case_data.get("action_text"),
-                    guest=case_data.get("guest"),
                     created=case_data.get("created"),
                     created_by=case_data.get("created_by"),
                     modified=case_data.get("modified"),
@@ -550,7 +547,6 @@ async def complete_workflow(
                         type=case_data.get("type") or "other",
                         title=title,
                         action=case_data.get("action") or case_data.get("action_text"),
-                        guest=case_data.get("guest"),
                         created=case_data.get("created"),
                         created_by=case_data.get("created_by"),
                         modified=case_data.get("modified"),
