@@ -351,112 +351,130 @@ async def complete_workflow(
 ):
     """
     Complete workflow: Upload PDF → Process → AI Feedback → Create Cases → Create Followups
+    Optimized for better timeout handling and error recovery.
     """
     steps = []
     
     try:
-        # Step 0: Clear all previous data
-        from services.daily_service_supabase import clear_all_data, verify_data_cleared
-        
-        clear_result = await clear_all_data()
-        steps.append(WorkflowStep(
-            step="Data Clearance",
-            status="success",
-            message=clear_result["message"],
-            data=clear_result
-        ))
-        
-        # Wait a moment for database to settle
-        import asyncio
-        await asyncio.sleep(1)
-        
-        # Verify data is actually cleared
-        verification = await verify_data_cleared()
-        if verification['is_cleared']:
+        # Step 0: Clear all previous data (with timeout protection)
+        try:
+            from services.daily_service_supabase import clear_all_data, verify_data_cleared
+            import asyncio
+            
+            # Use asyncio.wait_for to add timeout protection
+            clear_result = await asyncio.wait_for(clear_all_data(), timeout=30.0)
             steps.append(WorkflowStep(
-                step="Data Verification",
+                step="Data Clearance",
                 status="success",
-                message="Database verified empty - ready for new data",
-                data=verification
+                message=clear_result["message"],
+                data=clear_result
             ))
-        else:
-            # If verification fails, try clearing again
-            if verification['total_remaining'] > 0:
+            
+            # Wait a moment for database to settle
+            await asyncio.sleep(0.5)  # Reduced wait time
+            
+            # Verify data is actually cleared (with timeout)
+            verification = await asyncio.wait_for(verify_data_cleared(), timeout=10.0)
+            if verification['is_cleared']:
                 steps.append(WorkflowStep(
-                    step="Data Retry",
-                    status="warning",
-                    message=f"Retrying data clearance - {verification['message']}",
+                    step="Data Verification",
+                    status="success",
+                    message="Database verified empty - ready for new data",
                     data=verification
                 ))
-                
-                await clear_all_data()
-                await asyncio.sleep(1)
-                verification = await verify_data_cleared()
-                
-                if verification['is_cleared']:
-                    steps.append(WorkflowStep(
-                        step="Data Verification",
-                        status="success",
-                        message="Database verified empty after retry - ready for new data",
-                        data=verification
-                    ))
-                else:
-                    steps.append(WorkflowStep(
-                        step="Data Verification",
-                        status="error",
-                        message=f"Failed to clear data after retry: {verification['message']}",
-                        data=verification
-                    ))
             else:
                 steps.append(WorkflowStep(
                     step="Data Verification",
                     status="warning",
-                    message=f"Warning: {verification['message']}",
+                    message=f"Warning: {verification['message']} - continuing anyway",
                     data=verification
                 ))
-        
-        # Step 1: Process PDF
-        steps.append(WorkflowStep(
-            step="PDF Processing",
-            status="success",
-            message="PDF uploaded and processed successfully",
-            data={}
-        ))
-        
-        cases_data = process_document(file)
-        
-        # Handle case where no cases are found
-        if not cases_data:
+        except asyncio.TimeoutError:
             steps.append(WorkflowStep(
-                step="PDF Parsing",
+                step="Data Clearance",
                 status="warning",
-                message="No cases found in document - document may not contain case data in expected format",
-                data={"cases_count": 0}
+                message="Data clearance timed out - continuing with workflow",
+                data={"timeout": True}
+            ))
+        except Exception as e:
+            steps.append(WorkflowStep(
+                step="Data Clearance",
+                status="warning",
+                message=f"Data clearance failed: {str(e)} - continuing anyway",
+                data={"error": str(e)}
+            ))
+        
+        # Step 1: Process PDF (with timeout protection)
+        try:
+            cases_data = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(None, process_document, file),
+                timeout=60.0  # 60 second timeout for document processing
+            )
+            
+            steps.append(WorkflowStep(
+                step="PDF Processing",
+                status="success",
+                message="PDF uploaded and processed successfully",
+                data={}
             ))
             
-            # Return early with no cases created but provide helpful message
-            return CompleteWorkflowResponse(
-                steps=steps,
-                cases_created=0,
-                followups_created=0,
-                final_message="Document processed successfully but no cases were found. This could be because: 1) The document doesn't contain case data in the expected format, 2) The parsing logic couldn't extract the data properly, 3) The document structure is different from what the system expects. Please check the document content and ensure it contains case information with fields like Guest, Room, Status, etc."
+            # Handle case where no cases are found
+            if not cases_data:
+                steps.append(WorkflowStep(
+                    step="PDF Parsing",
+                    status="warning",
+                    message="No cases found in document - document may not contain case data in expected format",
+                    data={"cases_count": 0}
+                ))
+                
+                return CompleteWorkflowResponse(
+                    steps=steps,
+                    cases_created=0,
+                    followups_created=0,
+                    final_message="Document processed successfully but no cases were found. This could be because: 1) The document doesn't contain case data in the expected format, 2) The parsing logic couldn't extract the data properly, 3) The document structure is different from what the system expects. Please check the document content and ensure it contains case information with fields like Guest, Room, Status, etc."
+                )
+            
+            steps.append(WorkflowStep(
+                step="PDF Parsing",
+                status="success",
+                message=f"Extracted {len(cases_data)} cases from PDF",
+                data={"cases_count": len(cases_data), "cases": cases_data}
+            ))
+            
+        except asyncio.TimeoutError:
+            steps.append(WorkflowStep(
+                step="PDF Processing",
+                status="error",
+                message="PDF processing timed out - document may be too large or complex",
+                data={"timeout": True}
+            ))
+            raise HTTPException(
+                status_code=408,
+                detail="PDF processing timed out. Please try with a smaller document or contact support."
+            )
+        except Exception as e:
+            steps.append(WorkflowStep(
+                step="PDF Processing",
+                status="error",
+                message=f"PDF processing failed: {str(e)}",
+                data={"error": str(e)}
+            ))
+            raise HTTPException(
+                status_code=500,
+                detail=f"PDF processing failed: {str(e)}"
             )
         
-        steps.append(WorkflowStep(
-            step="PDF Parsing",
-            status="success",
-            message=f"Extracted {len(cases_data)} cases from PDF",
-            data={"cases_count": len(cases_data), "cases": cases_data}
-        ))
-        
-        # Step 2: Generate AI Feedback
+        # Step 2: Generate AI Feedback (with timeout protection)
         try:
             from services.ai_service import suggest_feedback, check_openai_available
             
             # Check if OpenAI is available
             is_available, message = check_openai_available()
             if is_available:
-                ai_suggestions = suggest_feedback(cases_data)
+                ai_suggestions = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(None, suggest_feedback, cases_data),
+                    timeout=30.0  # 30 second timeout for AI processing
+                )
                 steps.append(WorkflowStep(
                     step="AI Feedback",
                     status="success",
@@ -480,8 +498,24 @@ async def complete_workflow(
                     message=f"AI suggestions not available: {message}. Using default suggestions.",
                     data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
                 ))
+        except asyncio.TimeoutError:
+            # Create default suggestions on timeout
+            ai_suggestions = [
+                {
+                    "case_id": i,
+                    "suggestion_text": "Please review this case and determine appropriate follow-up action.",
+                    "confidence": 0.0,
+                    "case_data": case
+                }
+                for i, case in enumerate(cases_data)
+            ]
+            steps.append(WorkflowStep(
+                step="AI Feedback",
+                status="warning",
+                message="AI suggestions timed out - using default suggestions.",
+                data={"suggestions_count": len(ai_suggestions), "suggestions": ai_suggestions}
+            ))
         except Exception as e:
-            print(f"Error generating AI suggestions: {e}")
             # Create default suggestions on error
             ai_suggestions = [
                 {
@@ -502,67 +536,110 @@ async def complete_workflow(
         # Step 3: Create Cases in Database (only if create_cases is True)
         created_cases = []
         if create_cases:
-            case_objects = []
-            for case_data in cases_data:
-                # Ensure title is never empty
-                title = case_data.get("title") or case_data.get("case") or "Untitled Case"
+            try:
+                case_objects = []
+                for case_data in cases_data:
+                    # Ensure title is never empty
+                    title = case_data.get("title") or case_data.get("case") or "Untitled Case"
+                    
+                    # Map the data properly, handling potential field name mismatches
+                    case_obj = CaseCreate(
+                        room=case_data.get("room"),
+                        status=case_data.get("status") or "pending",
+                        importance=case_data.get("importance") or "medium",
+                        type=case_data.get("type") or "other",
+                        title=title,
+                        action=case_data.get("action") or case_data.get("action_text"),
+                        guest=case_data.get("guest"),
+                        created=case_data.get("created"),
+                        created_by=case_data.get("created_by"),
+                        modified=case_data.get("modified"),
+                        modified_by=case_data.get("modified_by"),
+                        source=case_data.get("source"),
+                        membership=case_data.get("membership"),
+                        case_description=case_data.get("case_description"),
+                        in_out=case_data.get("in_out"),
+                        owner_id=None  # Explicitly set to None for now
+                    )
+                    
+                    case_objects.append(case_obj)
                 
-                # Map the data properly, handling potential field name mismatches
-                case_obj = CaseCreate(
-                    room=case_data.get("room"),
-                    status=case_data.get("status") or "pending",
-                    importance=case_data.get("importance") or "medium",
-                    type=case_data.get("type") or "other",
-                    title=title,
-                    action=case_data.get("action") or case_data.get("action_text"),
-                    guest=case_data.get("guest"),
-                    created=case_data.get("created"),
-                    created_by=case_data.get("created_by"),
-                    modified=case_data.get("modified"),
-                    modified_by=case_data.get("modified_by"),
-                    source=case_data.get("source"),
-                    membership=case_data.get("membership"),
-                    case_description=case_data.get("case_description"),
-                    in_out=case_data.get("in_out"),
-                    owner_id=None  # Explicitly set to None for now
+                created_cases = await asyncio.wait_for(
+                    bulk_create_cases(case_objects),
+                    timeout=30.0  # 30 second timeout for case creation
                 )
                 
-                case_objects.append(case_obj)
-            
-            created_cases = await bulk_create_cases(case_objects)
-        steps.append(WorkflowStep(
-            step="Case Creation",
-            status="success",
-            message=f"Created {len(created_cases)} cases in database",
-            data={"cases_created": len(created_cases), "cases": cases_data}
-        ))
+                steps.append(WorkflowStep(
+                    step="Case Creation",
+                    status="success",
+                    message=f"Created {len(created_cases)} cases in database",
+                    data={"cases_created": len(created_cases), "cases": cases_data}
+                ))
+                
+            except asyncio.TimeoutError:
+                steps.append(WorkflowStep(
+                    step="Case Creation",
+                    status="error",
+                    message="Case creation timed out - database may be slow",
+                    data={"timeout": True}
+                ))
+                raise HTTPException(
+                    status_code=408,
+                    detail="Case creation timed out. Please try again."
+                )
+            except Exception as e:
+                steps.append(WorkflowStep(
+                    step="Case Creation",
+                    status="error",
+                    message=f"Case creation failed: {str(e)}",
+                    data={"error": str(e)}
+                ))
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Case creation failed: {str(e)}"
+                )
         
         # Step 4: Create Followups with AI Suggestions (only if create_cases is True)
         followups_created = 0
-        if create_cases:
-            for i, case in enumerate(created_cases):
-                if i < len(ai_suggestions):
-                    try:
-                        followup_data = FollowupCreate(
-                            case_id=case['id'],  # Use dictionary access since case is a dict
-                            suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available")
-                        )
-                        result = await create_followup(followup_data)
-                        if result:
-                            followups_created += 1
-                            logger.info(f"Created followup {followups_created} for case {case['id']}")
-                        else:
-                            logger.error(f"Failed to create followup for case {case['id']}")
-                    except Exception as e:
-                        logger.error(f"Error creating followup for case {case['id']}: {e}")
-                        # Continue with other followups instead of failing completely
-        
-        steps.append(WorkflowStep(
-            step="Followup Creation",
-            status="success",
-            message=f"Created {followups_created} followups with AI suggestions",
-            data={"followups_created": followups_created}
-        ))
+        if create_cases and created_cases:
+            try:
+                for i, case in enumerate(created_cases):
+                    if i < len(ai_suggestions):
+                        try:
+                            followup_data = FollowupCreate(
+                                case_id=case['id'],  # Use dictionary access since case is a dict
+                                suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available")
+                            )
+                            result = await asyncio.wait_for(
+                                create_followup(followup_data),
+                                timeout=5.0  # 5 second timeout per followup
+                            )
+                            if result:
+                                followups_created += 1
+                                logger.info(f"Created followup {followups_created} for case {case['id']}")
+                            else:
+                                logger.error(f"Failed to create followup for case {case['id']}")
+                        except asyncio.TimeoutError:
+                            logger.error(f"Followup creation timed out for case {case['id']}")
+                            continue  # Skip this followup and continue with others
+                        except Exception as e:
+                            logger.error(f"Error creating followup for case {case['id']}: {e}")
+                            continue  # Skip this followup and continue with others
+                
+                steps.append(WorkflowStep(
+                    step="Followup Creation",
+                    status="success",
+                    message=f"Created {followups_created} followups with AI suggestions",
+                    data={"followups_created": followups_created}
+                ))
+                
+            except Exception as e:
+                steps.append(WorkflowStep(
+                    step="Followup Creation",
+                    status="warning",
+                    message=f"Some followups failed to create: {str(e)}",
+                    data={"followups_created": followups_created, "error": str(e)}
+                ))
         
         return CompleteWorkflowResponse(
             steps=steps,
@@ -571,6 +648,9 @@ async def complete_workflow(
             final_message="Workflow completed successfully! All cases and followups have been created."
         )
         
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
         # Add error step
         steps.append(WorkflowStep(
@@ -677,6 +757,18 @@ async def debug_extract_text(file: UploadFile = File(...)):
             status_code=500, 
             detail=f"Error extracting text: {str(e)}"
         )
+
+# Test endpoint for CORS debugging
+@router.get("/test-cors")
+async def test_cors():
+    """
+    Simple test endpoint to verify CORS is working
+    """
+    return {
+        "message": "CORS test successful",
+        "timestamp": time.time(),
+        "status": "ok"
+    }
 
 # Legacy endpoint for backward compatibility
 @router.post("/pdf/upload", response_model=DocumentUploadResponse)

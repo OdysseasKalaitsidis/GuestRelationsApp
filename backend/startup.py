@@ -105,7 +105,15 @@ def main():
     
     # Start the application
     print("🎯 Starting uvicorn server...")
-    os.execv(sys.executable, [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", os.getenv("PORT", "8000")])
+    os.execv(sys.executable, [
+        sys.executable, "-m", "uvicorn", "main:app", 
+        "--host", "0.0.0.0", 
+        "--port", os.getenv("PORT", "8000"),
+        "--timeout-keep-alive", "300",
+        "--timeout-graceful-shutdown", "30",
+        "--limit-max-requests", "1000",
+        "--limit-concurrency", "100"
+    ])
 
 if __name__ == "__main__":
     main()

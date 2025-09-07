@@ -4,7 +4,7 @@
     {
       "type": "python",
       "version": "3.11",
-      "entrypoint": "uvicorn main:app --host 0.0.0.0 --port $PORT",
+      "entrypoint": "uvicorn main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 300 --timeout-graceful-shutdown 30 --limit-max-requests 1000 --limit-concurrency 100",
       "install_command": "chmod +x deploy.sh && ./deploy.sh",
       "packages": ["build-essential", "python3-dev", "libffi-dev", "libssl-dev", "gcc", "g++", "make", "pkg-config", "libblas-dev", "liblapack-dev", "python3-venv", "curl"],
       "environment": {

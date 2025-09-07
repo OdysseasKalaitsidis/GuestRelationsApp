@@ -219,5 +219,9 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=int(os.getenv("PORT", 8080)),
-        reload=ENVIRONMENT == "development"
+        reload=ENVIRONMENT == "development",
+        timeout_keep_alive=300,  # 5 minutes keep-alive timeout
+        timeout_graceful_shutdown=30,  # 30 seconds graceful shutdown
+        limit_max_requests=1000,  # Restart worker after 1000 requests
+        limit_concurrency=100  # Max concurrent connections
     )
