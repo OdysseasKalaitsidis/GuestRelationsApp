@@ -32,8 +32,13 @@ app = FastAPI(
 origins = [
     "https://docguestrelations.netlify.app",  # Updated frontend domain
     "https://guestreationadomes.netlify.app",  # Keep old domain for backward compatibility
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://localhost:3000",  # Additional local development port
+    "http://127.0.0.1:5173",  # Additional local development address
+    "http://127.0.0.1:3000"   # Additional local development address
 ]
+
+# Add environment-specific origins
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 for origin in allowed_origins:
     origin = origin.strip()
@@ -50,6 +55,11 @@ frontend_domain = "https://docguestrelations.netlify.app"  # Updated frontend do
 if frontend_domain not in origins:
     origins.append(frontend_domain)
 
+# Log CORS configuration for debugging
+logger.info(f"CORS origins configured: {origins}")
+logger.info(f"Environment: {ENVIRONMENT}")
+logger.info(f"Render domain: {render_domain}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -58,8 +68,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
-
-logger.info(f"CORS origins configured: {origins}")
 
 # Trusted host middleware
 if ENVIRONMENT == "production":
@@ -119,9 +127,18 @@ def api_health_check():
     }
 
 @app.options("/api/{path:path}")
-async def options_handler(path: str):
+async def options_handler(path: str, request: Request):
     """Handle CORS preflight requests"""
-    return {"message": "OK"}
+    origin = request.headers.get("origin")
+    logger.info(f"CORS preflight request from origin: {origin}")
+    
+    # Check if origin is allowed
+    if origin in origins:
+        logger.info(f"Origin {origin} is allowed")
+        return {"message": "OK"}
+    else:
+        logger.warning(f"Origin {origin} is not in allowed origins: {origins}")
+        return {"message": "OK"}  # Still return OK to avoid breaking the request
 
 @app.get("/api/debug/env")
 def debug_env():
@@ -132,6 +149,17 @@ def debug_env():
         "SUPABASE_ANON_KEY": bool(os.environ.get("SUPABASE_ANON_KEY")),
         "SECRET_KEY": bool(os.environ.get("SECRET_KEY")),
         "has_secret_key": bool(SECRET_KEY),
+    }
+
+@app.get("/api/debug/cors")
+def debug_cors():
+    """Debug endpoint to check CORS configuration"""
+    return {
+        "cors_origins": origins,
+        "environment": ENVIRONMENT,
+        "render_domain": render_domain,
+        "frontend_domain": frontend_domain,
+        "allowed_origins_env": os.getenv("ALLOWED_ORIGINS", ""),
     }
 
 @app.get("/api/debug/users")
