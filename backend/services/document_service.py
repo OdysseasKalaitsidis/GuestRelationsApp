@@ -135,9 +135,9 @@ def anonymise_text(text: str) -> str:
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     anonymized_text = re.sub(email_pattern, '[EMAIL]', anonymized_text)
     
-    # Step 2: Replace phone numbers
-    phone_pattern = r'\+?[\d\s\-\(\)]{7,}'
-    anonymized_text = re.sub(phone_pattern, '[PHONE]', anonymized_text)
+    # Step 2: Replace phone numbers (disabled for now to avoid date conflicts)
+    # phone_pattern = r'\+?[\d\s\-\(\)]{10,}(?=\s|$)'
+    # anonymized_text = re.sub(phone_pattern, '[PHONE]', anonymized_text)
     
     # Step 3: Replace booking references
     booking_pattern = r'\b(?:REF|#|Booking|Reservation|Confirmation)[\s\-]?\d+[A-Za-z0-9]*\b'
@@ -221,89 +221,77 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         # Enhanced extraction to capture every detail from the PDF
         
         # Extract guest name - multiple patterns for comprehensive coverage
-        guest_match = re.search(r'Guest:\s*([^|]+)', block)
+        guest_match = re.search(r'Guest\s*:\s*([^\n\r]+)', block)
         if not guest_match:
             guest_match = re.search(r'Guest\s+([A-Za-z\s]+)', block)
-        if not guest_match:
-            guest_match = re.search(r'Guest\s*:\s*([^\n\r]+)', block)
         
         # Extract room number - multiple patterns for comprehensive coverage
-        room_match = re.search(r'Room:\s*(\d+)', block)
+        room_match = re.search(r'Room\s*:\s*(\d+)', block)
         if not room_match:
             room_match = re.search(r'Room\s+(\d+)', block)
-        if not room_match:
-            room_match = re.search(r'Room\s*:\s*(\d+)', block)
         if not room_match:
             # Look for room numbers in various formats
             room_match = re.search(r'(\d{3,4})', block)  # 3-4 digit numbers
         
         # Extract status - comprehensive status extraction
-        status_match = re.search(r'Status:\s*(\w+)', block)
+        status_match = re.search(r'Status\s*:\s*(\w+)', block)
         if not status_match:
             status_match = re.search(r'Status\s+(\w+)', block)
-        if not status_match:
-            status_match = re.search(r'Status\s*:\s*(\w+)', block)
         
         # Extract importance - comprehensive importance extraction
-        importance_match = re.search(r'Importance:\s*(\w+)', block)
+        importance_match = re.search(r'Importance\s*:\s*(\w+)', block)
         if not importance_match:
             importance_match = re.search(r'Importance\s+(\w+)', block)
-        if not importance_match:
-            importance_match = re.search(r'Importance\s*:\s*(\w+)', block)
         
         # Extract type - comprehensive type extraction
-        type_match = re.search(r'Type:\s*(\w+)', block)
+        type_match = re.search(r'Type\s*:\s*(\w+)', block)
         if not type_match:
             type_match = re.search(r'Type\s+(\w+)', block)
-        if not type_match:
-            type_match = re.search(r'Type\s*:\s*(\w+)', block)
         
         # Extract source - comprehensive source extraction
-        source_match = re.search(r'Source:\s*([^|]+)', block)
+        source_match = re.search(r'Source\s*:\s*([^\n\r]+)', block)
         if not source_match:
             source_match = re.search(r'Source\s+([^\n\r]+)', block)
-        if not source_match:
-            source_match = re.search(r'Source\s*:\s*([^\n\r]+)', block)
         
         # Extract membership - comprehensive membership extraction
-        membership_match = re.search(r'Member:\s*([^|]+)', block)
+        membership_match = re.search(r'Member\s*:\s*([^\n\r]+)', block)
         if not membership_match:
             membership_match = re.search(r'Member\s+([^\n\r]+)', block)
-        if not membership_match:
-            membership_match = re.search(r'Member\s*:\s*([^\n\r]+)', block)
         
         # Extract in/out dates - comprehensive date extraction
-        in_out_match = re.search(r'In/Out:\s*([^|]+)', block)
+        in_out_match = re.search(r'IN/OUT\s*:\s*([^\n\r]+)', block)
+        if not in_out_match:
+            in_out_match = re.search(r'In/Out\s*:\s*([^\n\r]+)', block)
         if not in_out_match:
             in_out_match = re.search(r'In/Out\s+([^\n\r]+)', block)
         
-        # Extract modified date - comprehensive date extraction
-        modified_match = re.search(r'Updated:\s*([^|]+)', block)
-        if not modified_match:
-            modified_match = re.search(r'Modified:\s*([^|]+)', block)
-        if not modified_match:
-            modified_match = re.search(r'Last\s+Updated:\s*([^|]+)', block)
-        if not modified_match:
-            modified_match = re.search(r'Updated\s+([^\n\r]+)', block)
-        
         # Extract created date - comprehensive date extraction
-        created_match = re.search(r'Created:\s*([^|]+)', block)
+        created_match = re.search(r'Created\s*:\s*([^\n\r]+)', block)
         if not created_match:
-            created_match = re.search(r'Date:\s*([^|]+)', block)
+            created_match = re.search(r'Date\s*:\s*([^\n\r]+)', block)
         if not created_match:
             created_match = re.search(r'Created\s+([^\n\r]+)', block)
         
         # Extract created by - comprehensive user extraction
-        created_by_match = re.search(r'Created\s+by:\s*([^|]+)', block)
+        created_by_match = re.search(r'Created\s+by\s*:\s*([^\n\r]+)', block)
         if not created_by_match:
-            created_by_match = re.search(r'By:\s*([^|]+)', block)
+            created_by_match = re.search(r'By\s*:\s*([^\n\r]+)', block)
         if not created_by_match:
             created_by_match = re.search(r'Created\s+by\s+([^\n\r]+)', block)
         
+        # Extract modified date - comprehensive date extraction
+        modified_match = re.search(r'Modified\s*:\s*([^\n\r]+)', block)
+        if not modified_match:
+            modified_match = re.search(r'Updated\s*:\s*([^\n\r]+)', block)
+        if not modified_match:
+            modified_match = re.search(r'Last\s+Updated\s*:\s*([^\n\r]+)', block)
+        if not modified_match:
+            modified_match = re.search(r'Updated\s+([^\n\r]+)', block)
+        
         # Extract modified by - comprehensive user extraction
-        modified_by_match = re.search(r'Modified\s+by:\s*([^|]+)', block)
+        modified_by_match = re.search(r'Modified\s+by\s*:\s*([^\n\r]+)', block)
         if not modified_by_match:
-            modified_by_match = re.search(r'Updated\s+by:\s*([^|]+)', block)
+            modified_by_match = re.search(r'Updated\s+by\s*:\s*([^\n\r]+)', block)
         if not modified_by_match:
             modified_by_match = re.search(r'Modified\s+by\s+([^\n\r]+)', block)
         if not modified_by_match:
@@ -329,58 +317,68 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         # Extract case description as a separate section
         case_match = None
         
-        # Method 1: Look for CASE section
-        case_match = re.search(r'CASE\s*\n\s*(.+?)(?=\n\s*ACTION|\n\s*Created|$)', block, re.DOTALL | re.IGNORECASE)
+        # Method 1: Look for CASE section with improved pattern
+        case_match = re.search(r'CASE\s*:\s*(.+?)(?=\n\s*ACTION|\n\s*Created|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
         
-        # Method 2: Fallback pattern
+        # Method 2: Look for CASE without colon
+        if not case_match:
+            case_match = re.search(r'CASE\s*\n\s*(.+?)(?=\n\s*ACTION|\n\s*Created|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 3: Look for description after colon
         if not case_match:
             case_match = re.search(r'CASE\s+([^A-Z]+?)(?=\s+ACTION|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 4: Look for any substantial text that might be a case description
         if not case_match:
-            # Look for any substantial text that might be a case description
-            # Find the longest text block that's not just field names or action-related
             lines = block.split('\n')
             description_lines = []
-            action_keywords = ['update', 'action', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished']
+            action_keywords = ['update', 'action', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished', 'apologized', 'provided', 'ensured']
             
             for line in lines:
                 line = line.strip()
-                if (len(line) > 20 and 
+                if (len(line) > 15 and 
                     not re.match(r'^(Created|Guest|Status|Type|Room|Importance|Modified|Source|Membership|IN/OUT|ACTION)', line, re.IGNORECASE) and
                     not re.match(r'^\d{2}/\d{2}/\d{4}', line) and
-                    not any(keyword in line.lower() for keyword in action_keywords)):
+                    not any(keyword in line.lower() for keyword in action_keywords) and
+                    not re.match(r'^[A-Z][a-z]+\s*:\s*', line)):  # Skip field labels
                     description_lines.append(line)
             
             if description_lines:
-                case_description = ' '.join(description_lines[:3])  # Take first 3 meaningful lines
+                case_description = ' '.join(description_lines[:2])  # Take first 2 meaningful lines
                 if len(case_description) > 10:
                     case_match = type('MockMatch', (), {'group': lambda self, x: case_description})()
         
-        # Extract action as a separate section - simplified approach
+        # Extract action as a separate section - improved approach
         action_match = None
         
-        # Method 1: Look for ACTION section
-        action_match = re.search(r'ACTION\s*\n\s*(.+?)(?=\n\s*Created|\n\s*CASE|$)', block, re.DOTALL | re.IGNORECASE)
+        # Method 1: Look for ACTION section with colon
+        action_match = re.search(r'ACTION\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
         
-        # Method 2: Look for Update patterns
+        # Method 2: Look for ACTION without colon
         if not action_match:
-            action_match = re.search(r'Update:\s*(.+?)(?=\n\s*Created|\n\s*CASE|$)', block, re.DOTALL)
+            action_match = re.search(r'ACTION\s*\n\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
         
-        # Method 3: Look for Action taken/required
+        # Method 3: Look for Update patterns
         if not action_match:
-            action_match = re.search(r'Action\s+(?:taken|required):\s*(.+?)(?=\n\s*Created|\n\s*CASE|$)', block, re.DOTALL | re.IGNORECASE)
+            action_match = re.search(r'Update\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL)
         
-        # Method 4: Look for lines with action keywords
+        # Method 4: Look for Action taken/required
+        if not action_match:
+            action_match = re.search(r'Action\s+(?:taken|required)\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 5: Look for lines with action keywords
         if not action_match:
             lines = block.split('\n')
             action_lines = []
-            action_keywords = ['update', 'action', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished']
+            action_keywords = ['apologized', 'provided', 'ensured', 'contacted', 'arranged', 'delivered', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished', 'update', 'action']
             
             for line in lines:
                 line = line.strip()
                 if (len(line) > 15 and 
                     any(keyword in line.lower() for keyword in action_keywords) and
                     not re.match(r'^(Created|Guest|Status|Type|Room|Importance|Modified|Source|Membership|IN/OUT|CASE)', line, re.IGNORECASE) and
-                    not re.match(r'^\d{2}/\d{2}/\d{4}', line)):
+                    not re.match(r'^\d{2}/\d{2}/\d{4}', line) and
+                    not re.match(r'^[A-Z][a-z]+\s*:\s*', line)):  # Skip field labels
                     action_lines.append(line)
             
             if action_lines:

@@ -154,18 +154,21 @@ def suggest_feedback(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             f"Title: {case.get('title', case.get('case', 'N/A'))}\n"
             f"Case Description: {case.get('case_description', 'N/A')}\n"
             f"Action already taken: {case.get('action', 'N/A')}\n\n"
-            f"Based on this case information, please suggest **only one concise sentence** describing the next follow-up action that should be taken by the guest relations team."
+            f"Based on this case information, please provide a comprehensive follow-up action plan in 3-4 sentences. "
+            f"The response should be practical, actionable, and specific to hotel guest relations. "
+            f"Focus on next steps that would improve guest satisfaction or resolve the issue completely. "
+            f"Make it detailed enough to guide staff members on what to do next."
         )
 
         try:
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are an expert guest relations manager. Provide clear, actionable, and specific follow-up suggestions. Focus on practical next steps that would improve guest satisfaction or resolve issues."},
+                    {"role": "system", "content": "You are an expert guest relations manager with extensive hotel experience. Provide comprehensive, actionable follow-up plans in 3-4 sentences. Focus on practical next steps that would improve guest satisfaction or resolve issues completely. Be specific about what staff should do, when to do it, and how to measure success."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,  # Lower temperature for more consistent suggestions
-                max_tokens=100    # Limit response length
+                max_tokens=200    # Increased token limit for longer responses
             )
 
             suggestion = response.choices[0].message.content.strip()
