@@ -125,47 +125,60 @@ def extract_text_from_docx(file: UploadFile) -> str:
             raise ValueError(f"Failed to extract text from DOCX file: {str(e)}")
 
 def anonymise_text(text: str) -> str:
-    """Remove PII (names, emails, phones, booking refs) but preserve field labels and important names"""
-    # First, let's extract guest names before anonymizing
-    guest_names = []
-    guest_pattern = r'Guest\s+([^\n\r]+)'
-    guest_matches = re.findall(guest_pattern, text)
-    guest_names = [name.strip() for name in guest_matches if name.strip()]
+    """Automatically anonymize text to remove names and PII while preserving room numbers and case details"""
+    if not text:
+        return text
     
-    # Also preserve staff names (created by, modified by) as they're useful for case management
-    staff_names = []
-    staff_patterns = [
-        r'Created by\s+([^\n\r]+)',
-        r'Modified by\s+([^\n\r]+)'
+    anonymized_text = text
+    
+    # Step 1: Replace email addresses
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    anonymized_text = re.sub(email_pattern, '[EMAIL]', anonymized_text)
+    
+    # Step 2: Replace phone numbers
+    phone_pattern = r'\+?[\d\s\-\(\)]{7,}'
+    anonymized_text = re.sub(phone_pattern, '[PHONE]', anonymized_text)
+    
+    # Step 3: Replace booking references
+    booking_pattern = r'\b(?:REF|#|Booking|Reservation|Confirmation)[\s\-]?\d+[A-Za-z0-9]*\b'
+    anonymized_text = re.sub(booking_pattern, '[BOOKING_REFERENCE]', anonymized_text)
+    
+    # Step 4: Replace guest IDs
+    guest_id_pattern = r'\b(?:Guest|Customer|Client)\s*ID\s*[#]?\s*(\d+)\b'
+    anonymized_text = re.sub(guest_id_pattern, '[GUEST_ID]', anonymized_text)
+    
+    # Step 5: Use spaCy for name detection and replacement (with fallback)
+    try:
+        nlp = get_nlp()
+        if nlp:
+            doc = nlp(anonymized_text)
+            # Sort entities by length (longest first) to avoid partial replacements
+            entities = sorted(doc.ents, key=lambda x: len(x.text), reverse=True)
+            
+            for ent in entities:
+                if ent.label_ == "PERSON":
+                    # Only replace if it looks like a name and hasn't been replaced already
+                    if ent.text not in ['[CLIENT_NAME]', '[GUEST_ID]', '[BOOKING_REFERENCE]', '[EMAIL]', '[PHONE]']:
+                        anonymized_text = anonymized_text.replace(ent.text, '[CLIENT_NAME]')
+    except Exception as e:
+        print(f"Warning: spaCy not available for name detection: {e}")
+    
+    # Step 6: Additional name patterns for comprehensive coverage
+    # Look for capitalized words that might be names (but not room numbers or field labels)
+    name_patterns = [
+        r'\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\b',  # Two capitalized words
+        r'\b(?:Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)\s+[A-Z][a-z]+\s+[A-Z][a-z]+\b',  # Names with titles
     ]
-    for pattern in staff_patterns:
-        matches = re.findall(pattern, text)
-        staff_names.extend([name.strip() for name in matches if name.strip()])
     
-    # Define important values that should NEVER be anonymized
-    important_values = [
-        'CLOSED', 'OPEN', 'PENDING', 'RESOLVED',
-        'NEGATIVE', 'POSITIVE', 'NEUTRAL',
-        'LOW', 'MEDIUM', 'HIGH',
-        'CASE', 'ACTION', 'IN/OUT'
-    ]
+    for pattern in name_patterns:
+        potential_names = re.findall(pattern, anonymized_text)
+        for name in potential_names:
+            # Skip if it's already been replaced or contains common non-name words
+            if (name not in ['[CLIENT_NAME]', '[GUEST_ID]', '[BOOKING_REFERENCE]', '[EMAIL]', '[PHONE]'] and
+                not any(word in name.lower() for word in ['room', 'floor', 'suite', 'hotel', 'guest', 'check', 'booking', 'maintenance', 'service', 'guest', 'relations', 'report', 'additional', 'notes', 'status', 'type', 'importance', 'source', 'membership', 'action', 'case', 'created', 'modified'])):
+                anonymized_text = anonymized_text.replace(name, '[CLIENT_NAME]')
     
-    # Now anonymize the text more selectively - preserve field labels and important names
-    nlp = get_nlp()
-    if nlp:
-        doc = nlp(text)
-        for ent in doc.ents:
-            if ent.label_ in ['PERSON', 'ORG']:
-                # Don't anonymize if it's a guest name, staff name, or important value
-                if (ent.text not in guest_names and 
-                    ent.text not in staff_names and 
-                    ent.text not in important_values):
-                    # Also don't anonymize field labels like "Guest", "Status", "Room", etc.
-                    field_labels = ['Guest', 'Status', 'Room', 'Importance', 'Type', 'Source', 'Membership', 'CASE', 'ACTION', 'IN/OUT', 'Created', 'Modified', 'Created by', 'Modified by']
-                    if ent.text not in field_labels:
-                        text = text.replace(ent.text, "[NAME]")
-    
-    return text
+    return anonymized_text
 
 def parse_cases(text: str, status_type_info: dict = None) -> list:
     """Convert text into structured list of case dicts - updated for table format"""
@@ -204,63 +217,102 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         print(f"DEBUG: Processing block {i+1}, length: {len(block)}")
         print(f"DEBUG: Block content: {block[:200]}...")
         
-        # Extract case information using patterns that match the actual PDF structure
-        # Based on test output, the structure is: Guest: Name | In/Out: dates | Source: source | Member: level
+        # Extract ALL case information using comprehensive patterns
+        # Enhanced extraction to capture every detail from the PDF
         
-        # Extract guest name - look for "Guest: Name" pattern
+        # Extract guest name - multiple patterns for comprehensive coverage
         guest_match = re.search(r'Guest:\s*([^|]+)', block)
         if not guest_match:
-            # Try alternative pattern
             guest_match = re.search(r'Guest\s+([A-Za-z\s]+)', block)
+        if not guest_match:
+            guest_match = re.search(r'Guest\s*:\s*([^\n\r]+)', block)
         
-        # Extract room number - look for "Room: number" pattern  
+        # Extract room number - multiple patterns for comprehensive coverage
         room_match = re.search(r'Room:\s*(\d+)', block)
         if not room_match:
-            # Try alternative pattern
             room_match = re.search(r'Room\s+(\d+)', block)
+        if not room_match:
+            room_match = re.search(r'Room\s*:\s*(\d+)', block)
+        if not room_match:
+            # Look for room numbers in various formats
+            room_match = re.search(r'(\d{3,4})', block)  # 3-4 digit numbers
         
-        # Extract status - look for "Status: status" pattern
+        # Extract status - comprehensive status extraction
         status_match = re.search(r'Status:\s*(\w+)', block)
         if not status_match:
             status_match = re.search(r'Status\s+(\w+)', block)
+        if not status_match:
+            status_match = re.search(r'Status\s*:\s*(\w+)', block)
         
-        # Extract importance - look for "Importance: level" pattern
+        # Extract importance - comprehensive importance extraction
         importance_match = re.search(r'Importance:\s*(\w+)', block)
         if not importance_match:
             importance_match = re.search(r'Importance\s+(\w+)', block)
+        if not importance_match:
+            importance_match = re.search(r'Importance\s*:\s*(\w+)', block)
         
-        # Extract type - look for "Type: type" pattern
+        # Extract type - comprehensive type extraction
         type_match = re.search(r'Type:\s*(\w+)', block)
         if not type_match:
             type_match = re.search(r'Type\s+(\w+)', block)
+        if not type_match:
+            type_match = re.search(r'Type\s*:\s*(\w+)', block)
         
-        # Extract source - look for "Source: source" pattern
+        # Extract source - comprehensive source extraction
         source_match = re.search(r'Source:\s*([^|]+)', block)
         if not source_match:
             source_match = re.search(r'Source\s+([^\n\r]+)', block)
+        if not source_match:
+            source_match = re.search(r'Source\s*:\s*([^\n\r]+)', block)
         
-        # Extract membership - look for "Member: level" pattern
+        # Extract membership - comprehensive membership extraction
         membership_match = re.search(r'Member:\s*([^|]+)', block)
         if not membership_match:
             membership_match = re.search(r'Member\s+([^\n\r]+)', block)
+        if not membership_match:
+            membership_match = re.search(r'Member\s*:\s*([^\n\r]+)', block)
         
-        # Extract in/out dates - look for "In/Out: dates" pattern
+        # Extract in/out dates - comprehensive date extraction
         in_out_match = re.search(r'In/Out:\s*([^|]+)', block)
         if not in_out_match:
             in_out_match = re.search(r'In/Out\s+([^\n\r]+)', block)
         
-        # Extract modified date - look for "Updated: date" pattern
+        # Extract modified date - comprehensive date extraction
         modified_match = re.search(r'Updated:\s*([^|]+)', block)
+        if not modified_match:
+            modified_match = re.search(r'Modified:\s*([^|]+)', block)
+        if not modified_match:
+            modified_match = re.search(r'Last\s+Updated:\s*([^|]+)', block)
         if not modified_match:
             modified_match = re.search(r'Updated\s+([^\n\r]+)', block)
         
-        # Extract modified by - look for staff name patterns
-        modified_by_match = re.search(r'([A-Za-z\s]+)\s*$', block)
-        if modified_by_match:
-            # Check if it looks like a staff name (not too long, contains letters)
-            potential_name = modified_by_match.group(1).strip()
-            if len(potential_name) < 50 and re.match(r'^[A-Za-z\s]+$', potential_name):
-                modified_by_match = re.search(r'([A-Za-z\s]+)\s*$', block)
+        # Extract created date - comprehensive date extraction
+        created_match = re.search(r'Created:\s*([^|]+)', block)
+        if not created_match:
+            created_match = re.search(r'Date:\s*([^|]+)', block)
+        if not created_match:
+            created_match = re.search(r'Created\s+([^\n\r]+)', block)
+        
+        # Extract created by - comprehensive user extraction
+        created_by_match = re.search(r'Created\s+by:\s*([^|]+)', block)
+        if not created_by_match:
+            created_by_match = re.search(r'By:\s*([^|]+)', block)
+        if not created_by_match:
+            created_by_match = re.search(r'Created\s+by\s+([^\n\r]+)', block)
+        
+        # Extract modified by - comprehensive user extraction
+        modified_by_match = re.search(r'Modified\s+by:\s*([^|]+)', block)
+        if not modified_by_match:
+            modified_by_match = re.search(r'Updated\s+by:\s*([^|]+)', block)
+        if not modified_by_match:
+            modified_by_match = re.search(r'Modified\s+by\s+([^\n\r]+)', block)
+        if not modified_by_match:
+            # Look for staff name patterns at the end of blocks
+            staff_match = re.search(r'([A-Za-z\s]+)\s*$', block)
+            if staff_match:
+                potential_name = staff_match.group(1).strip()
+                if len(potential_name) < 50 and re.match(r'^[A-Za-z\s]+$', potential_name):
+                    modified_by_match = staff_match
             
         # Extract values from the matches
         guest_value = guest_match.group(1).strip() if guest_match else None
@@ -348,34 +400,32 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             # Take only the first part before the pipe
             guest_value = guest_value.split('|')[0].strip()
         
-        # Ensure we have a valid title - use guest name, room, case description, or fallback
-        if guest_value and len(guest_value) < 50:  # Avoid very long names that might be malformed
-            title = guest_value
-        elif room_value:
-            title = f"Room {room_value} Case"
+        # Use room number as title (primary requirement)
+        if room_value:
+            title = f"Room {room_value}"
         elif case_match and case_match.group(1).strip():
-            # Use first 50 characters of case description as title
+            # Use first 50 characters of case description as fallback
             desc = case_match.group(1).strip()
             title = desc[:50] + "..." if len(desc) > 50 else desc
         else:
             title = "Untitled Case"
         
         case = {
-            "created": None,  # Not available in this format
+            "created": created_match.group(1).strip() if created_match else None,
             "guest": guest_value,
             "status": status_value,
-            "created_by": None,  # Not available in this format
+            "created_by": created_by_match.group(1).strip() if created_by_match else None,
             "room": room_value,
             "importance": importance_value,
-            "modified": modified_value,
-            "modified_by": modified_by_value,
+            "modified": modified_match.group(1).strip() if modified_match else None,
+            "modified_by": modified_by_match.group(1).strip() if modified_by_match else None,
             "source": source_value,
             "membership": membership_value,
             "type": type_value,
             "case_description": case_match.group(1).strip() if case_match else None,
             "action": action_match.group(1).strip() if action_match else None,
             "in_out": in_out_value,
-            "title": title  # Always guaranteed to have a value
+            "title": title  # Always guaranteed to have a value (room number)
         }
         
         print(f"DEBUG: Extracted case: {case}")
@@ -431,12 +481,15 @@ def process_document(file: UploadFile) -> list:
         if not raw_text or len(raw_text.strip()) < 10:
             return []
         
+        # Apply automatic anonymization to protect privacy
+        anonymized_text = anonymise_text(raw_text)
+        
         # Skip AI parsing - use regex parsing directly
         # AI parsing disabled per user preference
         
-        # Fallback to optimized regex parsing
-        status_type_info = extract_status_type_info(raw_text)
-        cases = parse_cases(raw_text, status_type_info)
+        # Fallback to optimized regex parsing with anonymized text
+        status_type_info = extract_status_type_info(anonymized_text)
+        cases = parse_cases(anonymized_text, status_type_info)
         
         return cases
         

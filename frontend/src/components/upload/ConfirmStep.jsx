@@ -29,7 +29,6 @@ const ConfirmStep = ({ aiFeedback, assignedUsers, availableUsers, anonymizeData 
               }
             </div>
             <div><strong>Room:</strong> {caseItem.room}</div>
-            <div><strong>Guest:</strong> {anonymizeData ? '[CLIENT_NAME]' : caseItem.guest}</div>
           </div>
           <div className="mt-2">
             <strong>Feedback:</strong> {caseItem.feedback}

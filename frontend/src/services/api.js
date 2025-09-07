@@ -435,7 +435,7 @@ export const internalHealthCheck = async () => {
 };
 
 export const internalDatabaseStatus = async () => {
-  const res = await fetch(`${INTERNAL_API_URL}/test/db`, {
+  const res = await fetch(`${INTERNAL_API_URL}/debug/users`, {
     headers: {
       ...getAuthHeaders(),
     },

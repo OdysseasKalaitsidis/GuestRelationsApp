@@ -84,18 +84,6 @@ const EditStep = ({
             </div>
           </div>
           
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Guest <span className="text-blue-600 text-xs">(Will be anonymized)</span>
-            </label>
-            <input
-              type="text"
-              value={caseItem.guest || ''}
-              onChange={(e) => onCaseEdit(index, "guest", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-              placeholder="Guest Name"
-            />
-          </div>
           
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -9,8 +9,7 @@ class CaseCreate(BaseModel):
     title: str
     action: Optional[str] = None
     owner_id: Optional[int] = None
-    # New fields for AI parsing
-    guest: Optional[str] = None
+    # New fields for AI parsing (guest field removed from UI)
     created: Optional[str] = None
     created_by: Optional[str] = None
     modified: Optional[str] = None
@@ -28,8 +27,7 @@ class CaseUpdate(BaseModel):
     title: Optional[str] = None
     action: Optional[str] = None
     owner_id: Optional[int] = None
-    # New fields for AI parsing
-    guest: Optional[str] = None
+    # New fields for AI parsing (guest field removed from UI)
     created: Optional[str] = None
     created_by: Optional[str] = None
     modified: Optional[str] = None

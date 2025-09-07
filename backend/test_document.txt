@@ -1,0 +1,18 @@
+Guest: John Smith
+Room: 123
+Status: OPEN
+Importance: HIGH
+Type: NEGATIVE
+Source: Front Desk
+Member: Gold
+Created: 2025-09-06
+Created by: Staff Member
+Modified: 2025-09-06
+Modified by: Manager
+
+CASE: Guest complaint about room service
+The guest reported that room service was delayed by 2 hours and the food was cold when it arrived.
+
+ACTION: Apologized to guest, provided complimentary meal, and ensured future orders are prioritized.
+
+IN/OUT: Check-in: 15:00 | Check-out: 11:00
