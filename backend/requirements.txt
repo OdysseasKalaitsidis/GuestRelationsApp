@@ -12,7 +12,7 @@ python-dotenv==1.0.0
 openai==1.106.1
 scikit-learn==1.2.2
 numpy==2.3.2
-spacy==3.5.3
+spacy==3.7.2  # Updated to resolve typer dependency conflict with chromadb
 
 # Database migration
 alembic==1.12.1
@@ -36,7 +36,7 @@ python-docx==0.8.11
 supabase==2.0.0
 
 # RAG and Vector Database dependencies
-chromadb==0.4.15
+chromadb==0.4.22  # Updated to resolve typer dependency conflict with spacy
 sentence-transformers==2.2.2
 langchain==0.3.27
 langchain-community==0.3.29
