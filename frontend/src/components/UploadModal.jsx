@@ -94,52 +94,110 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
       const decoder = new TextDecoder();
       let cases = [];
       let suggestions = [];
+      let buffer = ''; // Buffer to handle incomplete JSON chunks
       
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        // Add new chunk to buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete lines from buffer
+        const lines = buffer.split('\n');
+        
+        // Keep the last line in buffer (might be incomplete)
+        buffer = lines.pop() || '';
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6));
-              
-              // Update processing status
-              setProcessingStatus({
-                message: data.message,
-                progress: data.progress || 0,
-                current: data.current || 0,
-                total: data.total || 0
-              });
-              
-              // Handle different steps
-              if (data.step === 'parsing') {
-                cases = data.cases || [];
-                setPdfCases(cases);
-              } else if (data.step === 'complete') {
-                cases = data.cases || [];
-                suggestions = data.suggestions || [];
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
                 
-                // Map feedback to cases
-                const casesWithFeedback = cases.map((c, i) => ({
-                  ...c,
-                  feedback: suggestions[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
-                }));
+                // Update processing status
+                setProcessingStatus({
+                  message: data.message,
+                  progress: data.progress || 0,
+                  current: data.current || 0,
+                  total: data.total || 0
+                });
                 
-                setAiFeedback(casesWithFeedback);
-                setCurrentStep(2); // Go to step 2 (previously step 3)
-              } else if (data.step === 'error') {
-                setError(data.message);
-                setIsLoading(false);
-                return;
+                // Handle different steps
+                if (data.step === 'parsing') {
+                  cases = data.cases || [];
+                  setPdfCases(cases);
+                } else if (data.step === 'complete') {
+                  cases = data.cases || [];
+                  suggestions = data.suggestions || [];
+                  
+                  // Map feedback to cases
+                  const casesWithFeedback = cases.map((c, i) => ({
+                    ...c,
+                    feedback: suggestions[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
+                  }));
+                  
+                  setAiFeedback(casesWithFeedback);
+                  setCurrentStep(2); // Go to step 2 (previously step 3)
+                } else if (data.step === 'error') {
+                  setError(data.message);
+                  setIsLoading(false);
+                  return;
+                }
               }
             } catch (e) {
               console.warn('Failed to parse progress data:', e);
+              console.warn('Problematic line:', line);
             }
           }
+        }
+      }
+      
+      // Process any remaining data in buffer
+      if (buffer.trim()) {
+        try {
+          const lines = buffer.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr) {
+                const data = JSON.parse(jsonStr);
+                
+                // Update processing status
+                setProcessingStatus({
+                  message: data.message,
+                  progress: data.progress || 0,
+                  current: data.current || 0,
+                  total: data.total || 0
+                });
+                
+                // Handle different steps
+                if (data.step === 'parsing') {
+                  cases = data.cases || [];
+                  setPdfCases(cases);
+                } else if (data.step === 'complete') {
+                  cases = data.cases || [];
+                  suggestions = data.suggestions || [];
+                  
+                  // Map feedback to cases
+                  const casesWithFeedback = cases.map((c, i) => ({
+                    ...c,
+                    feedback: suggestions[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
+                  }));
+                  
+                  setAiFeedback(casesWithFeedback);
+                  setCurrentStep(2); // Go to step 2 (previously step 3)
+                } else if (data.step === 'error') {
+                  setError(data.message);
+                  setIsLoading(false);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse final buffer data:', e);
         }
       }
       

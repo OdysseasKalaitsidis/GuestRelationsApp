@@ -56,10 +56,10 @@ const EditStep = ({
             </div>
           </div>
           
-          {/* Action Required - Enhanced Read-only Display */}
+          {/* Action - Enhanced Read-only Display */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              ⚡ Action Required
+              ⚡ Action
             </label>
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">
