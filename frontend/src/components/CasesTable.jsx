@@ -86,6 +86,8 @@ export default function CasesTable({ cases, onCaseUpdate }) {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-main">Room {caseItem.room || 'N/A'}</span>
+                </div>
+                <div className="flex items-center">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(caseItem.status)}`}>
                     {caseItem.status || 'pending'}
                   </span>
@@ -134,7 +136,7 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                 </div>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-3 flex justify-end">
                 <select
                   value={caseItem.status || ''}
                   onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
@@ -161,9 +163,6 @@ export default function CasesTable({ cases, onCaseUpdate }) {
               Room
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
-              Status
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Assignee
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
@@ -178,6 +177,9 @@ export default function CasesTable({ cases, onCaseUpdate }) {
             <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
               Action
             </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-third uppercase tracking-wider border-b border-third border-opacity-20">
+              Status
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-third divide-opacity-20">
@@ -185,21 +187,6 @@ export default function CasesTable({ cases, onCaseUpdate }) {
             <tr key={caseItem.id} className="hover:bg-third hover:bg-opacity-5">
               <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-main">
                 {caseItem.room || 'N/A'}
-              </td>
-              <td className="px-4 py-3 whitespace-nowrap">
-                <select
-                  value={caseItem.status || ''}
-                  onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
-                  disabled={updatingStatus.has(caseItem.id)}
-                  className={`text-xs font-semibold rounded-full border-0 px-2 py-1 ${getStatusColor(caseItem.status)} ${
-                    updatingStatus.has(caseItem.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="rejected">Rejected</option>
-                </select>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-sm text-main">
                 {caseItem.assigned_user_name || caseItem.users?.name || (caseItem.owner_id ? `User ${caseItem.owner_id}` : 'Unassigned')}
@@ -229,6 +216,21 @@ export default function CasesTable({ cases, onCaseUpdate }) {
                 >
                   {caseItem.action || 'N/A'}
                 </button>
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                <select
+                  value={caseItem.status || ''}
+                  onChange={(e) => handleStatusUpdate(caseItem.id, e.target.value)}
+                  disabled={updatingStatus.has(caseItem.id)}
+                  className={`text-xs font-semibold rounded-full border-0 px-2 py-1 ${getStatusColor(caseItem.status)} ${
+                    updatingStatus.has(caseItem.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
               </td>
             </tr>
           ))}

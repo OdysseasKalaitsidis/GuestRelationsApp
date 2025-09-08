@@ -2,6 +2,7 @@ import os
 import uuid
 import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 from services.document_service import process_document
@@ -11,7 +12,9 @@ from services.followup_service_supabase import create_followup
 from schemas.case import CaseCreate
 from schemas.followup import FollowupCreate
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Callable
+import json
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -753,6 +756,123 @@ async def debug_extract_text(file: UploadFile = File(...)):
             status_code=500, 
             detail=f"Error extracting text: {str(e)}"
         )
+
+# Streaming workflow endpoint for real-time progress
+@router.post("/workflow-stream")
+async def workflow_stream(file: UploadFile = File(...), create_cases: bool = False):
+    """
+    Streaming workflow with real-time progress updates
+    """
+    async def generate_progress():
+        try:
+            # Step 0: Clear all previous data
+            yield f"data: {json.dumps({'step': 'clearing', 'message': 'Clearing previous data...', 'progress': 5})}\n\n"
+            
+            try:
+                from services.daily_service_supabase import clear_all_data, verify_data_cleared
+                import asyncio
+                
+                # Clear existing data
+                clear_result = await asyncio.wait_for(clear_all_data(), timeout=30.0)
+                yield f"data: {json.dumps({'step': 'cleared', 'message': clear_result['message'], 'progress': 8})}\n\n"
+                
+                # Wait a moment for database to settle
+                await asyncio.sleep(0.5)
+                
+                # Verify data is actually cleared
+                verification = await asyncio.wait_for(verify_data_cleared(), timeout=10.0)
+                if verification['is_cleared']:
+                    yield f"data: {json.dumps({'step': 'verified', 'message': 'Database verified empty - ready for new data', 'progress': 10})}\n\n"
+                else:
+                    warning_msg = f"Warning: {verification['message']} - continuing anyway"
+                    yield f"data: {json.dumps({'step': 'warning', 'message': warning_msg, 'progress': 10})}\n\n"
+                    
+            except asyncio.TimeoutError:
+                yield f"data: {json.dumps({'step': 'warning', 'message': 'Data clearance timed out - continuing with workflow', 'progress': 10})}\n\n"
+            except Exception as e:
+                error_msg = f"Data clearance failed: {str(e)} - continuing anyway"
+                yield f"data: {json.dumps({'step': 'warning', 'message': error_msg, 'progress': 10})}\n\n"
+            
+            # Step 1: Process document
+            yield f"data: {json.dumps({'step': 'processing', 'message': 'Processing document...', 'progress': 15})}\n\n"
+            
+            cases_data = await asyncio.get_event_loop().run_in_executor(None, process_document, file)
+            
+            if not cases_data:
+                yield f"data: {json.dumps({'step': 'error', 'message': 'No cases found in document', 'progress': 0})}\n\n"
+                return
+            
+            yield f"data: {json.dumps({'step': 'parsing', 'message': f'Extracted {len(cases_data)} cases', 'progress': 30})}\n\n"
+            
+            # Step 2: Generate AI feedback with progress
+            yield f"data: {json.dumps({'step': 'ai_start', 'message': f'Generating AI feedback for {len(cases_data)} cases...', 'progress': 40})}\n\n"
+            
+            progress_messages = []
+            def progress_callback(current, total, message):
+                progress = 40 + (current / total) * 40  # 40-80% for AI processing
+                progress_messages.append(f"data: {json.dumps({'step': 'ai_progress', 'current': current, 'total': total, 'message': message, 'progress': int(progress)})}\n\n")
+            
+            ai_suggestions = suggest_feedback(cases_data, progress_callback)
+            
+            # Yield all progress messages
+            for msg in progress_messages:
+                yield msg
+            
+            yield f"data: {json.dumps({'step': 'ai_complete', 'message': f'Generated {len(ai_suggestions)} AI suggestions', 'progress': 80})}\n\n"
+            
+            # Step 3: Create cases if requested
+            if create_cases:
+                yield f"data: {json.dumps({'step': 'creating', 'message': 'Creating cases in database...', 'progress': 85})}\n\n"
+                
+                case_objects = []
+                for case_data in cases_data:
+                    title = case_data.get("title") or case_data.get("case") or "Untitled Case"
+                    case_obj = CaseCreate(
+                        room=case_data.get("room"),
+                        status=case_data.get("status") or "pending",
+                        importance=case_data.get("importance") or "medium",
+                        type=case_data.get("type") or "other",
+                        title=title,
+                        action=case_data.get("action") or case_data.get("action_text"),
+                        created=case_data.get("created"),
+                        created_by=case_data.get("created_by"),
+                        modified=case_data.get("modified"),
+                        modified_by=case_data.get("modified_by"),
+                        source=case_data.get("source"),
+                        membership=case_data.get("membership"),
+                        case_description=case_data.get("case_description"),
+                        in_out=case_data.get("in_out"),
+                        owner_id=None
+                    )
+                    case_objects.append(case_obj)
+                
+                created_cases = await bulk_create_cases(case_objects)
+                yield f"data: {json.dumps({'step': 'cases_created', 'message': f'Created {len(created_cases)} cases', 'progress': 90})}\n\n"
+                
+                # Create followups
+                followups_created = 0
+                for i, case in enumerate(created_cases):
+                    if i < len(ai_suggestions):
+                        try:
+                            followup_data = FollowupCreate(
+                                case_id=case['id'],
+                                suggestion_text=ai_suggestions[i].get("suggestion_text", "No AI suggestion available")
+                            )
+                            result = await create_followup(followup_data)
+                            if result:
+                                followups_created += 1
+                        except Exception as e:
+                            logger.error(f"Error creating followup for case {case['id']}: {e}")
+                
+                yield f"data: {json.dumps({'step': 'followups_created', 'message': f'Created {followups_created} followups', 'progress': 95})}\n\n"
+            
+            # Final result
+            yield f"data: {json.dumps({'step': 'complete', 'message': 'Workflow completed successfully!', 'progress': 100, 'cases': cases_data, 'suggestions': ai_suggestions})}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'step': 'error', 'message': f'Workflow failed: {str(e)}', 'progress': 0})}\n\n"
+    
+    return StreamingResponse(generate_progress(), media_type="text/plain")
 
 # Test endpoint for CORS debugging
 @router.get("/test-cors")

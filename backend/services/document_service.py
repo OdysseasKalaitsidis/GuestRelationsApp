@@ -351,8 +351,29 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         # Extract action as a separate section - improved approach
         action_match = None
         
-        # Method 1: Look for ACTION section with colon
+        # Method 1: Look for ACTION section with colon (exclude metadata)
         action_match = re.search(r'ACTION\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Clean up action if it contains unwanted metadata
+        if action_match:
+            action_text = action_match.group(1).strip()
+            # Remove lines that contain metadata patterns
+            lines = action_text.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                line = line.strip()
+                # Skip lines with metadata patterns
+                if (not re.search(r'Updated:\s*\d{2}\s+\w+\s+\d{2}:\d{2}', line) and
+                    not re.search(r'\|\s*Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and
+                    not re.search(r'Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and
+                    len(line) > 5):  # Only keep substantial lines
+                    cleaned_lines.append(line)
+            
+            if cleaned_lines:
+                cleaned_action = '\n'.join(cleaned_lines)
+                action_match = type('MockMatch', (), {'group': lambda self, x: cleaned_action})()
+            else:
+                action_match = None
         
         # Method 2: Look for ACTION without colon
         if not action_match:
@@ -366,7 +387,7 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         if not action_match:
             action_match = re.search(r'Action\s+(?:taken|required)\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
         
-        # Method 5: Look for lines with action keywords
+        # Method 5: Look for lines with action keywords (exclude "Updated:" lines and metadata)
         if not action_match:
             lines = block.split('\n')
             action_lines = []
@@ -378,7 +399,11 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
                     any(keyword in line.lower() for keyword in action_keywords) and
                     not re.match(r'^(Created|Guest|Status|Type|Room|Importance|Modified|Source|Membership|IN/OUT|CASE)', line, re.IGNORECASE) and
                     not re.match(r'^\d{2}/\d{2}/\d{4}', line) and
-                    not re.match(r'^[A-Z][a-z]+\s*:\s*', line)):  # Skip field labels
+                    not re.match(r'^[A-Z][a-z]+\s*:\s*', line) and  # Skip field labels
+                    not line.startswith('Updated:') and  # Skip "Updated:" lines
+                    not line.startswith('Update:') and  # Skip "Update:" lines
+                    not re.search(r'\|\s*Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and  # Skip metadata lines
+                    not re.search(r'Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line)):  # Skip metadata lines
                     action_lines.append(line)
             
             if action_lines:

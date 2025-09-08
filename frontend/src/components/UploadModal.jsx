@@ -9,7 +9,6 @@ import {
   getAuthHeaders,
 } from "../services/api";
 import UploadStep from "./upload/UploadStep";
-import ReviewStep from "./upload/ReviewStep";
 import EditStep from "./upload/EditStep";
 import ConfirmStep from "./upload/ConfirmStep";
 import ProgressBar from "./upload/ProgressBar";
@@ -26,8 +25,9 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
   const [assignedUsers, setAssignedUsers] = useState({});
   const [error, setError] = useState(null);
   const [availableUsers, setAvailableUsers] = useState([]);
+  const [processingStatus, setProcessingStatus] = useState({ message: '', progress: 0, current: 0, total: 0 });
 
-  const totalSteps = 4;
+  const totalSteps = 3;
 
   // Fetch users when modal opens
   useEffect(() => {
@@ -70,14 +70,15 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     
     setIsLoading(true);
     setError(null);
+    setProcessingStatus({ message: 'Starting upload...', progress: 0, current: 0, total: 0 });
 
     try {
-      // Use workflow endpoint to get processed cases without creating them yet
+      // Use streaming workflow endpoint for real-time progress
       const formData = new FormData();
       formData.append("file", pdfFile);
       formData.append("create_cases", "false");
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/documents/workflow`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/documents/workflow-stream`, {
         method: "POST",
         headers: {
           ...getAuthHeaders(),
@@ -89,24 +90,58 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
         throw new Error(`Workflow failed: ${response.statusText}`);
       }
       
-      const workflowResult = await response.json();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let cases = [];
+      let suggestions = [];
       
-      // Extract cases from workflow result
-      const pdfParsingStep = workflowResult.steps.find(step => step.step === "PDF Parsing");
-      const extractedCases = pdfParsingStep?.data?.cases || [];
-      
-      if (!extractedCases || extractedCases.length === 0) {
-        setError("No cases found in document. Check your document.");
-        setIsLoading(false);
-        return;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              // Update processing status
+              setProcessingStatus({
+                message: data.message,
+                progress: data.progress || 0,
+                current: data.current || 0,
+                total: data.total || 0
+              });
+              
+              // Handle different steps
+              if (data.step === 'parsing') {
+                cases = data.cases || [];
+                setPdfCases(cases);
+              } else if (data.step === 'complete') {
+                cases = data.cases || [];
+                suggestions = data.suggestions || [];
+                
+                // Map feedback to cases
+                const casesWithFeedback = cases.map((c, i) => ({
+                  ...c,
+                  feedback: suggestions[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
+                }));
+                
+                setAiFeedback(casesWithFeedback);
+                setCurrentStep(2); // Go to step 2 (previously step 3)
+              } else if (data.step === 'error') {
+                setError(data.message);
+                setIsLoading(false);
+                return;
+              }
+            } catch (e) {
+              console.warn('Failed to parse progress data:', e);
+            }
+          }
+        }
       }
-
-      setPdfCases(extractedCases);
-      
-      // Automatically proceed to step 3 (Edit Cases & Assign Users) after a brief delay
-      setTimeout(async () => {
-        await handleAutoProceedToStep3(extractedCases);
-      }, 1000); // 1 second delay to show step 2 briefly
       
     } catch (err) {
       console.error(err);
@@ -116,52 +151,6 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     }
   };
 
-  // Auto-proceed function to go directly from step 2 to step 3
-  const handleAutoProceedToStep3 = async (cases) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Use the working workflow endpoint instead of streamlined workflow
-      const formData = new FormData();
-      formData.append("file", pdfFile);
-      formData.append("create_cases", "false");
-      
-      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/documents/workflow`, {
-        method: "POST",
-        headers: {
-          ...getAuthHeaders(),
-        },
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Workflow failed: ${response.statusText}`);
-      }
-      
-      const workflowResult = await response.json();
-      
-      // Extract cases and feedback from workflow result
-      const aiFeedbackStep = workflowResult.steps.find(step => step.step === "AI Feedback");
-      const feedbackCases = aiFeedbackStep?.data?.suggestions || [];
-      
-      console.log("AI Feedback step:", aiFeedbackStep);
-      console.log("Feedback cases:", feedbackCases);
-      
-      // Map feedback to cases
-      const casesWithFeedback = cases.map((c, i) => ({
-        ...c,
-        feedback: feedbackCases[i]?.suggestion_text || "No AI feedback generated - please add manual feedback",
-      }));
-      
-      setAiFeedback(casesWithFeedback);
-      setCurrentStep(3); // Automatically go to step 3
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to generate AI feedback");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleFeedbackEdit = (index, newFeedback) => {
     const updated = [...aiFeedback];
@@ -169,18 +158,13 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
     setAiFeedback(updated);
   };
 
-  // ---------- Step 3: Edit Cases & Assign Users ----------
-  const handleCaseEdit = (index, field, value) => {
-    const updated = [...aiFeedback];
-    updated[index][field] = value;
-    setAiFeedback(updated);
-  };
+  // ---------- Step 2: Edit AI Feedback & Assign Users ----------
 
   const handleUserAssignment = (index, userId) => {
     setAssignedUsers((prev) => ({ ...prev, [index]: userId }));
   };
 
-  // ---------- Step 4: Confirm & Create ----------
+  // ---------- Step 3: Confirm & Create ----------
   const handleConfirmAll = async () => {
     setIsLoading(true);
     setError(null);
@@ -225,7 +209,7 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
           // Use backend anonymization service for case description
           if (anonymizedCase.case_description) {
             try {
-              const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/anonymization/text`, {
+              const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/anonymization/text`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -297,20 +281,13 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
   };
 
   const nextStep = () => {
-    // Step 2 is now automated, so we skip manual navigation for it
-    if (currentStep === 1) {
-      // Step 1 to 2 is handled automatically in handleUpload
-      return;
-    } else if (currentStep < totalSteps) {
+    if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    // Step 2 is automated, so going back from step 3 goes to step 1
-    if (currentStep === 3) {
-      setCurrentStep(1);
-    } else if (currentStep > 1) {
+    if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -318,9 +295,8 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
   const canProceed = () => {
     switch (currentStep) {
       case 1: return pdfCases.length > 0;
-      case 2: return false; // Step 2 is automated, no manual proceed
+      case 2: return true;
       case 3: return true;
-      case 4: return true;
       default: return false;
     }
   };
@@ -340,40 +316,19 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
               error={error}
             />
             
-            {/* GDPR Compliance Notice */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center">
-                <div className="text-blue-600 mr-2">🔒</div>
-                <div>
-                  <strong className="text-blue-800">GDPR Compliance</strong>
-                  <p className="text-blue-700 text-sm mt-1">
-                    All personal data will be automatically anonymized for GDPR compliance. 
-                    Names will be replaced with [CLIENT_NAME] and [STAFF_MEMBER], and dates will be anonymized.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         );
       case 2:
-        return (
-          <ReviewStep
-            pdfCases={pdfCases}
-            onRemoveCase={(index) => setPdfCases(prev => prev.filter((_, idx) => idx !== index))}
-          />
-        );
-      case 3:
         return (
           <EditStep
             aiFeedback={aiFeedback}
             assignedUsers={assignedUsers}
             availableUsers={availableUsers}
-            onCaseEdit={handleCaseEdit}
             onFeedbackEdit={handleFeedbackEdit}
             onUserAssignment={handleUserAssignment}
           />
         );
-      case 4:
+      case 3:
         return (
           <ConfirmStep
             aiFeedback={aiFeedback}
@@ -401,6 +356,27 @@ const UploadModal = ({ isOpen, onClose, onWorkflowComplete }) => {
 
         {/* Step Title & Description */}
         <StepHeader currentStep={currentStep} />
+
+        {/* Processing Status */}
+        {isLoading && processingStatus.message && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-blue-800 font-medium">{processingStatus.message}</span>
+              <span className="text-blue-600 text-sm">{processingStatus.progress}%</span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${processingStatus.progress}%` }}
+              ></div>
+            </div>
+            {processingStatus.current > 0 && processingStatus.total > 0 && (
+              <div className="text-blue-600 text-sm mt-1">
+                Processing case {processingStatus.current} of {processingStatus.total}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Step Content */}
         <div className="mb-6">

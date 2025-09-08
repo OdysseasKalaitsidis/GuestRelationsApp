@@ -131,18 +131,23 @@ def parse_document_with_ai(text: str) -> List[Dict[str, Any]]:
         # Fallback to regex parsing
         return []
 
-def suggest_feedback(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def suggest_feedback(cases: List[Dict[str, Any]], progress_callback=None) -> List[Dict[str, Any]]:
     """
     Given a list of cases, call ChatGPT and return AI suggestions.
     Returns structured feedback that can be used to create followups.
+    Progress callback function receives (current, total, message) updates.
     """
     client = get_client()
     results = []
 
     print(f"Generating AI suggestions for {len(cases)} cases...")
+    if progress_callback:
+        progress_callback(0, len(cases), f"Starting AI feedback generation for {len(cases)} cases...")
 
     for i, case in enumerate(cases):
         print(f"Processing case {i+1}/{len(cases)}: {case.get('title', 'Untitled')}")
+        if progress_callback:
+            progress_callback(i+1, len(cases), f"Processing case {i+1}/{len(cases)}: {case.get('title', 'Untitled')}")
         
         # Create a more detailed prompt for better suggestions
         prompt = (
@@ -199,4 +204,6 @@ def suggest_feedback(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             })
 
     print(f"Successfully generated {len(results)} AI suggestions")
+    if progress_callback:
+        progress_callback(len(cases), len(cases), f"Successfully generated {len(results)} AI suggestions")
     return results
