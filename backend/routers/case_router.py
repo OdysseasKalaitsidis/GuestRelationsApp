@@ -187,6 +187,18 @@ async def read_cases(db_service = Depends(get_db_service)):
     """Get all cases"""
     return await get_cases()
 
+@router.options("/with-followups")
+async def options_cases_with_followups():
+    """Handle CORS preflight for cases with followups endpoint"""
+    from fastapi.responses import Response
+    response = Response()
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Max-Age"] = "3600"
+    return response
+
 @router.get("/with-followups")
 async def read_cases_with_followups(db_service = Depends(get_db_service)):
     """Get all cases with their associated followups"""

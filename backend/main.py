@@ -63,7 +63,7 @@ logger.info(f"Render domain: {render_domain}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allow all origins for now to fix the immediate issue
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
@@ -139,26 +139,17 @@ def ping():
 async def options_handler(path: str, request: Request):
     """Handle CORS preflight requests"""
     origin = request.headers.get("origin")
-    logger.info(f"CORS preflight request from origin: {origin}")
+    logger.info(f"CORS preflight request from origin: {origin} for path: {path}")
     
-    # Check if origin is allowed
-    if origin in origins:
-        logger.info(f"Origin {origin} is allowed")
-        response = JSONResponse(content={"message": "OK"})
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Max-Age"] = "3600"
-        return response
-    else:
-        logger.warning(f"Origin {origin} is not in allowed origins: {origins}")
-        # Still return OK with CORS headers to avoid breaking the request
-        response = JSONResponse(content={"message": "OK"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        return response
+    # Always allow the request with proper CORS headers
+    response = JSONResponse(content={"message": "OK"})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Max-Age"] = "3600"
+    logger.info(f"CORS preflight response sent for {path}")
+    return response
 
 @app.get("/api/debug/env")
 def debug_env():
