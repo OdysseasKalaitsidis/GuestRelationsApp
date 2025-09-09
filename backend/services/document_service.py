@@ -24,15 +24,85 @@ def get_nlp():
     return _nlp
 
 def extract_text_from_pdf(file: UploadFile) -> str:
-    """Extract text from PDF using pdfplumber without temp files"""
+    """Extract text from PDF using pdfplumber with improved table handling"""
     pdf_bytes = BytesIO(file.file.read())
     text = ""
-    with pdfplumber.open(pdf_bytes) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-    return text
+    
+    try:
+        with pdfplumber.open(pdf_bytes) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                # Extract text normally first
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+                
+                # Also extract tables and convert to structured text
+                tables = page.extract_tables()
+                if tables:
+                    for table_num, table in enumerate(tables):
+                        if table:  # Check if table has content
+                            # Convert table to structured text
+                            table_text = convert_table_to_text(table)
+                            if table_text:
+                                text += f"\n--- TABLE {page_num+1}.{table_num+1} ---\n"
+                                text += table_text + "\n"
+                                text += "--- END TABLE ---\n"
+        
+        # Clean up the extracted text
+        text = clean_extracted_text(text)
+        return text
+        
+    except Exception as e:
+        print(f"Error extracting PDF text: {e}")
+        # Fallback to basic extraction
+        pdf_bytes.seek(0)
+        with pdfplumber.open(pdf_bytes) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
+
+def convert_table_to_text(table):
+    """Convert PDF table to structured text format"""
+    if not table or not table[0]:
+        return ""
+    
+    text_lines = []
+    
+    # Process each row
+    for row in table:
+        if not row:
+            continue
+            
+        # Filter out None values and join with spaces
+        clean_row = [str(cell).strip() if cell else "" for cell in row]
+        row_text = " | ".join(clean_row)
+        
+        if row_text.strip():
+            text_lines.append(row_text)
+    
+    return "\n".join(text_lines)
+
+def clean_extracted_text(text):
+    """Clean and normalize extracted text"""
+    if not text:
+        return text
+    
+    # Remove excessive whitespace
+    text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
+    
+    # Fix common PDF extraction issues
+    text = re.sub(r'(\w)-\s*\n\s*(\w)', r'\1\2', text)  # Fix hyphenated words split across lines
+    text = re.sub(r'(\w)\s*\n\s*(\w)', r'\1 \2', text)  # Fix words split across lines
+    
+    # Normalize spacing around colons
+    text = re.sub(r'\s*:\s*', ': ', text)
+    
+    # Fix common field patterns
+    text = re.sub(r'(Guest|Room|Status|Type|Importance|Action|Case|Created|Modified|Source|Member)\s*:\s*', r'\1: ', text)
+    
+    return text.strip()
 
 def extract_text_from_docx(file: UploadFile) -> str:
     """
@@ -184,7 +254,7 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
     """Convert text into structured list of case dicts - updated for table format"""
     cases = []
     
-    # Split text into potential case blocks - improved splitting logic
+    # Split text into potential case blocks - improved splitting logic for PDFs
     # Look for multiple patterns that indicate case boundaries
     case_blocks = re.split(r'(?=Created\s+\d{2}/\d{2}/\d{4})', text)
     
@@ -203,12 +273,20 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             case_blocks = re.split(r'(?=Room\s*:\s*\d+)', text)
             
         if len(case_blocks) <= 1:
+            # Try splitting by table boundaries (for PDF tables)
+            case_blocks = re.split(r'(?=--- TABLE)', text)
+            
+        if len(case_blocks) <= 1:
             # Try splitting by double newlines or section breaks
             case_blocks = re.split(r'\n\s*\n\s*\n', text)
             
         if len(case_blocks) <= 1:
             # Try simpler double newline splitting
             case_blocks = re.split(r'\n\n', text)
+            
+        if len(case_blocks) <= 1:
+            # Try splitting by pipe-separated table rows (common in PDFs)
+            case_blocks = re.split(r'(?=\w+\s*\|\s*\w+)', text)
             
         if len(case_blocks) <= 1:
             # Last resort: split by any date pattern
@@ -367,7 +445,7 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         action_match = None
         
         # Method 1: Look for ACTION section with colon (exclude metadata)
-        action_match = re.search(r'ACTION\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
+        action_match = re.search(r'ACTION\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|\n\s*Guest|\n\s*Room|\n\s*Status|\n\s*Type|\n\s*Importance|$)', block, re.DOTALL | re.IGNORECASE)
         
         # Clean up action if it contains unwanted metadata
         if action_match:
@@ -381,6 +459,15 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
                 if (not re.search(r'Updated:\s*\d{2}\s+\w+\s+\d{2}:\d{2}', line) and
                     not re.search(r'\|\s*Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and
                     not re.search(r'Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and
+                    not re.search(r'^Guest\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Room\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Status\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Type\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Importance\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Created\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Modified\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Source\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Member\s*:\s*', line, re.IGNORECASE) and
                     len(line) > 5):  # Only keep substantial lines
                     cleaned_lines.append(line)
             
@@ -392,21 +479,50 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         
         # Method 2: Look for ACTION without colon
         if not action_match:
-            action_match = re.search(r'ACTION\s*\n\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
+            action_match = re.search(r'ACTION\s*\n\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|\n\s*Guest|\n\s*Room|\n\s*Status|\n\s*Type|\n\s*Importance|$)', block, re.DOTALL | re.IGNORECASE)
         
         # Method 3: Look for Update patterns
         if not action_match:
-            action_match = re.search(r'Update\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL)
+            action_match = re.search(r'Update\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|\n\s*Guest|\n\s*Room|\n\s*Status|\n\s*Type|\n\s*Importance|$)', block, re.DOTALL)
         
         # Method 4: Look for Action taken/required
         if not action_match:
-            action_match = re.search(r'Action\s+(?:taken|required)\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|$)', block, re.DOTALL | re.IGNORECASE)
+            action_match = re.search(r'Action\s+(?:taken|required)\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|\n\s*Guest|\n\s*Room|\n\s*Status|\n\s*Type|\n\s*Importance|$)', block, re.DOTALL | re.IGNORECASE)
         
-        # Method 5: Look for lines with action keywords (exclude "Updated:" lines and metadata)
+        # Method 5: Look for "Action:" pattern (case sensitive)
+        if not action_match:
+            action_match = re.search(r'Action\s*:\s*(.+?)(?=\n\s*Created|\n\s*CASE|\n\s*IN/OUT|\n\s*Guest|\n\s*Room|\n\s*Status|\n\s*Type|\n\s*Importance|$)', block, re.DOTALL)
+        
+        # Method 6: Look for table-style action entries (for PDF tables)
+        if not action_match:
+            # Look for action in table format: "Action | description"
+            action_match = re.search(r'Action\s*\|\s*(.+?)(?=\n|$)', block, re.DOTALL | re.IGNORECASE)
+        
+        # Method 7: Look for action descriptions in table rows
+        if not action_match:
+            lines = block.split('\n')
+            for i, line in enumerate(lines):
+                if 'action' in line.lower() and '|' in line:
+                    # Extract the part after the pipe
+                    parts = line.split('|')
+                    if len(parts) > 1:
+                        action_text = parts[1].strip()
+                        if len(action_text) > 10:  # Only if substantial content
+                            action_match = type('MockMatch', (), {'group': lambda self, x: action_text})()
+                            break
+        
+        # Method 8: Look for lines with action keywords (exclude "Updated:" lines and metadata)
         if not action_match:
             lines = block.split('\n')
             action_lines = []
-            action_keywords = ['apologized', 'provided', 'ensured', 'contacted', 'arranged', 'delivered', 'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished', 'update', 'action']
+            action_keywords = [
+                'apologized', 'provided', 'ensured', 'contacted', 'arranged', 'delivered', 
+                'resolved', 'completed', 'follow-up', 'followup', 'done', 'finished', 
+                'update', 'action', 'maintenance', 'repaired', 'fixed', 'replaced', 
+                'checked', 'investigated', 'escalated', 'notified', 'informed', 
+                'scheduled', 'booked', 'confirmed', 'cancelled', 'refunded', 
+                'compensated', 'upgraded', 'moved', 'transferred', 'assisted'
+            ]
             
             for line in lines:
                 line = line.strip()
@@ -418,7 +534,16 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
                     not line.startswith('Updated:') and  # Skip "Updated:" lines
                     not line.startswith('Update:') and  # Skip "Update:" lines
                     not re.search(r'\|\s*Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and  # Skip metadata lines
-                    not re.search(r'Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line)):  # Skip metadata lines
+                    not re.search(r'Status:\s*\w+\s*\|\s*Importance:\s*\w+\s*\|\s*Type:\s*\w+\s*\|\s*Room:\s*\d+', line) and  # Skip metadata lines
+                    not re.search(r'^Guest\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Room\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Status\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Type\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Importance\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Created\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Modified\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Source\s*:\s*', line, re.IGNORECASE) and
+                    not re.search(r'^Member\s*:\s*', line, re.IGNORECASE)):
                     action_lines.append(line)
             
             if action_lines:
