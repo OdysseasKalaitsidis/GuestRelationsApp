@@ -139,9 +139,9 @@ class DatabaseService:
     async def get_cases_with_followups(self) -> List[Dict[str, Any]]:
         """Get cases with their followups and user information"""
         try:
-            # First get all cases
-            cases_response = self.supabase.table("cases").select("*").execute()
-            cases = self._handle_response(cases_response, "Get cases")
+            # Get cases with user information using join
+            cases_response = self.supabase.table("cases").select("*, users(*)").execute()
+            cases = self._handle_response(cases_response, "Get cases with users")
             
             if not cases:
                 return []
@@ -158,9 +158,17 @@ class DatabaseService:
                     followups_by_case[case_id] = []
                 followups_by_case[case_id].append(followup)
             
-            # Add followups to cases
+            # Add followups to cases and ensure user info is properly structured
             for case in cases:
                 case["followups"] = followups_by_case.get(case.get("id"), [])
+                
+                # Ensure user information is properly accessible
+                if case.get("users"):
+                    case["assigned_user_name"] = case["users"].get("name", "Unknown")
+                elif case.get("owner_id"):
+                    case["assigned_user_name"] = f"User {case['owner_id']}"
+                else:
+                    case["assigned_user_name"] = "Unassigned"
             
             return cases
         except Exception as e:

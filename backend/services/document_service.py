@@ -191,16 +191,24 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
     # If we only got one block, try alternative splitting methods
     if len(case_blocks) <= 1:
         print("DEBUG: Single block detected, trying alternative splitting...")
-        # Try splitting by other patterns that might indicate case boundaries
-        case_blocks = re.split(r'(?=Guest\s+[A-Z][a-z]+)', text)
+        # Try splitting by Guest: pattern (works with anonymized text)
+        case_blocks = re.split(r'(?=Guest\s*:\s*)', text)
+        
+        if len(case_blocks) <= 1:
+            # Try splitting by other patterns that might indicate case boundaries
+            case_blocks = re.split(r'(?=Guest\s+[A-Z][a-z]+)', text)
         
         if len(case_blocks) <= 1:
             # Try splitting by room numbers
-            case_blocks = re.split(r'(?=Room\s+\d+)', text)
+            case_blocks = re.split(r'(?=Room\s*:\s*\d+)', text)
             
         if len(case_blocks) <= 1:
             # Try splitting by double newlines or section breaks
             case_blocks = re.split(r'\n\s*\n\s*\n', text)
+            
+        if len(case_blocks) <= 1:
+            # Try simpler double newline splitting
+            case_blocks = re.split(r'\n\n', text)
             
         if len(case_blocks) <= 1:
             # Last resort: split by any date pattern
@@ -224,6 +232,13 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
         guest_match = re.search(r'Guest\s*:\s*([^\n\r]+)', block)
         if not guest_match:
             guest_match = re.search(r'Guest\s+([A-Za-z\s]+)', block)
+        # Handle anonymized names
+        if guest_match and guest_match.group(1).strip() == '[CLIENT_NAME]':
+            guest_name = '[CLIENT_NAME]'
+        elif guest_match:
+            guest_name = guest_match.group(1).strip()
+        else:
+            guest_name = None
         
         # Extract room number - multiple patterns for comprehensive coverage
         room_match = re.search(r'Room\s*:\s*(\d+)', block)
@@ -303,7 +318,7 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
                     modified_by_match = staff_match
             
         # Extract values from the matches
-        guest_value = guest_match.group(1).strip() if guest_match else None
+        guest_value = guest_name  # Use the extracted guest_name from above
         room_value = room_match.group(1).strip() if room_match else None
         status_value = status_match.group(1).strip() if status_match else None
         importance_value = importance_match.group(1).strip() if importance_match else None
@@ -438,6 +453,7 @@ def parse_cases(text: str, status_type_info: dict = None) -> list:
             "status": status_value,
             "created_by": created_by_match.group(1).strip() if created_by_match else None,
             "room": room_value,
+            "guest_name": guest_value,  # Add guest name to case object
             "importance": importance_value,
             "modified": modified_match.group(1).strip() if modified_match else None,
             "modified_by": modified_by_match.group(1).strip() if modified_by_match else None,
