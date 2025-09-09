@@ -1,4 +1,5 @@
 import os
+import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -64,9 +65,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Trusted host middleware
@@ -123,8 +125,15 @@ def api_health_check():
     return {
         "status": "healthy",
         "environment": ENVIRONMENT,
-        "database": "available" if os.environ.get("SUPABASE_URL") else "unavailable"
+        "database": "available" if os.environ.get("SUPABASE_URL") else "unavailable",
+        "cors_origins": origins,
+        "timestamp": time.time()
     }
+
+@app.get("/api/ping")
+def ping():
+    """Simple ping endpoint for testing connectivity"""
+    return {"message": "pong", "timestamp": time.time()}
 
 @app.options("/api/{path:path}")
 async def options_handler(path: str, request: Request):
@@ -135,10 +144,21 @@ async def options_handler(path: str, request: Request):
     # Check if origin is allowed
     if origin in origins:
         logger.info(f"Origin {origin} is allowed")
-        return {"message": "OK"}
+        response = JSONResponse(content={"message": "OK"})
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Max-Age"] = "3600"
+        return response
     else:
         logger.warning(f"Origin {origin} is not in allowed origins: {origins}")
-        return {"message": "OK"}  # Still return OK to avoid breaking the request
+        # Still return OK with CORS headers to avoid breaking the request
+        response = JSONResponse(content={"message": "OK"})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
 
 @app.get("/api/debug/env")
 def debug_env():
