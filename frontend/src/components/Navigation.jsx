@@ -15,8 +15,7 @@ const Navigation = ({ user, onLogout }) => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <div className="flex items-center space-x-2">
-                <img src="/docg.png" alt="Guest Relations" className="h-8 w-8" />
-                <h1 className="text-xl font-bold text-main">DOC Guest Relations App</h1>
+                <h1 className="text-xl font-bold text-main">Guest Relations AI App</h1>
               </div>
             </div>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">

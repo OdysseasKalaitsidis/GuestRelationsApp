@@ -28,8 +28,7 @@ const AuthPage = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="flex items-center justify-center mb-4">
-          <img src="/docg.png" alt="Guest Relations" className="h-12 w-12 mr-3" />
-          <h1 className="text-3xl font-bold text-main">Guest Relations System</h1>
+          <h1 className="text-3xl font-bold text-main">Guest Relations AI App</h1>
         </div>
         <p className="text-third mb-6">Please login to access the system</p>
         <button

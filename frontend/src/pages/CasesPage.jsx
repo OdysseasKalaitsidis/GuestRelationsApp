@@ -76,7 +76,7 @@ const CasesPage = () => {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-main mb-2">Daily Guest Relations Case Management</h1>
           <p className="text-third">
-            View and manage all cases of DOC
+            View and manage all guest relations cases
           </p>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full lg:w-auto">

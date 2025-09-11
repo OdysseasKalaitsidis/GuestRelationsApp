@@ -16,7 +16,7 @@ const RAGPage = () => {
     setMessages([{
       id: 1,
       type: 'ai',
-      content: 'Hello! I\'m your AI assistant for the front desk at Domes of Corfu. I can help you with hotel policies, procedures, and guest relations. How can I assist you today?',
+      content: 'Hello! I\'m your AI assistant for guest relations. I can help you with hotel policies, procedures, and guest relations. How can I assist you today?',
       timestamp: new Date()
     }]);
   }, []);
