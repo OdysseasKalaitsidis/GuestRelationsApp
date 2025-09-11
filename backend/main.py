@@ -31,7 +31,8 @@ app = FastAPI(
 
 # CORS origins
 origins = [
-    "https://docguestrelations.netlify.app",  # Updated frontend domain
+    "https://guestrelations.netlify.app",  # Updated frontend domain
+    "https://docguestrelations.netlify.app",  # Keep old domain for backward compatibility
     "https://guestreationadomes.netlify.app",  # Keep old domain for backward compatibility
     "http://localhost:5173",
     "http://localhost:3000",  # Additional local development port
@@ -52,7 +53,7 @@ if render_domain and f"https://{render_domain}" not in origins:
     origins.append(f"https://{render_domain}")
 
 # Add the frontend domain explicitly
-frontend_domain = "https://docguestrelations.netlify.app"  # Updated frontend domain
+frontend_domain = "https://guestrelations.netlify.app"  # Updated frontend domain
 if frontend_domain not in origins:
     origins.append(frontend_domain)
 
@@ -63,7 +64,7 @@ logger.info(f"Render domain: {render_domain}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now to fix the immediate issue
+    allow_origins=origins,  # Use specific origins instead of wildcard
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
