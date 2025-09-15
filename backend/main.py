@@ -72,6 +72,29 @@ app.add_middleware(
     max_age=3600,  # Cache preflight requests for 1 hour
 )
 
+# Additional CORS middleware for debugging
+@app.middleware("http")
+async def cors_debug_middleware(request: Request, call_next):
+    """Additional CORS debugging middleware"""
+    origin = request.headers.get("origin")
+    if origin:
+        logger.info(f"CORS request from origin: {origin} to {request.url}")
+        logger.info(f"Origin in allowed origins: {origin in origins}")
+    
+    response = await call_next(request)
+    
+    # Add CORS headers to all responses
+    if origin and origin in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
 # Trusted host middleware
 if ENVIRONMENT == "production":
     allowed_hosts = ["*"]
@@ -136,20 +159,60 @@ def ping():
     """Simple ping endpoint for testing connectivity"""
     return {"message": "pong", "timestamp": time.time()}
 
+@app.get("/api/health")
+def health_check():
+    """Comprehensive health check endpoint"""
+    try:
+        # Check environment variables
+        env_status = {
+            "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL")),
+            "SUPABASE_ANON_KEY": bool(os.environ.get("SUPABASE_ANON_KEY")),
+            "SECRET_KEY": bool(os.environ.get("SECRET_KEY")),
+            "OPENAI_API_KEY": bool(os.environ.get("OPENAI_API_KEY")),
+        }
+        
+        # Check CORS configuration
+        cors_status = {
+            "configured_origins": origins,
+            "frontend_domain": "https://guestrelations.netlify.app" in origins,
+            "environment": ENVIRONMENT,
+        }
+        
+        return {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "environment": env_status,
+            "cors": cors_status,
+            "version": "1.0.0"
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": time.time()
+        }
+
 @app.options("/api/{path:path}")
 async def options_handler(path: str, request: Request):
     """Handle CORS preflight requests"""
     origin = request.headers.get("origin")
     logger.info(f"CORS preflight request from origin: {origin} for path: {path}")
     
+    # Check if origin is allowed
+    if origin in origins:
+        allow_origin = origin
+    else:
+        allow_origin = "*"
+    
     # Always allow the request with proper CORS headers
     response = JSONResponse(content={"message": "OK"})
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Origin"] = allow_origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
     response.headers["Access-Control-Allow-Headers"] = "*"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Max-Age"] = "3600"
-    logger.info(f"CORS preflight response sent for {path}")
+    logger.info(f"CORS preflight response sent for {path} with origin: {allow_origin}")
     return response
 
 @app.get("/api/debug/env")

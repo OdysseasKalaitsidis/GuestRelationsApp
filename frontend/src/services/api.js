@@ -311,9 +311,9 @@ export const isAuthenticated = () => {
 
 // User Management
 export const fetchUsers = async () => {
-  const res = await fetch(`${BASE_URL}/users/`, {
+  const res = await fetch(`${BASE_URL}/users/public/`, {
     headers: {
-      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
     },
   });
   

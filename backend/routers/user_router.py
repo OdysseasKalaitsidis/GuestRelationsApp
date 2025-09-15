@@ -6,6 +6,9 @@ from services.user_service_supabase import (
 )
 from routers.auth_route import get_current_admin_user, get_current_user
 from typing import List
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -13,6 +16,20 @@ router = APIRouter()
 async def get_users(current_user: dict = Depends(get_current_user)):
     """Get all users (requires authentication)"""
     return await get_all_users()
+
+@router.get("/users/public/", response_model=List[UserResponse])
+async def get_users_public():
+    """Get all users (public endpoint for frontend)"""
+    try:
+        users = await get_all_users()
+        # Remove sensitive information
+        for user in users:
+            if "hashed_password" in user:
+                del user["hashed_password"]
+        return users
+    except Exception as e:
+        logger.error(f"Error fetching users for public endpoint: {e}")
+        return []
 
 @router.get("/users/{user_id}", response_model=UserResponse)
 async def get_user(
