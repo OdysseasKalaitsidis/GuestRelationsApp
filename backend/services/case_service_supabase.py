@@ -20,6 +20,7 @@ async def create_case(case: CaseCreate) -> Optional[Dict[str, Any]]:
             "type": case.type,
             "title": case.title,
             "action": case.action,
+            "owner_id": case.owner_id,
             "created": case.created,
             "created_by": case.created_by,
             "modified": case.modified,
@@ -52,7 +53,9 @@ async def bulk_create_cases(cases: List[CaseCreate]) -> List[Dict[str, Any]]:
         db_service = await get_db_service()
         created_cases = []
         
-        for case in cases:
+        logger.info(f"Starting bulk creation of {len(cases)} cases")
+        
+        for i, case in enumerate(cases):
             case_data = {
                 "room": case.room,
                 "status": case.status,
@@ -60,6 +63,7 @@ async def bulk_create_cases(cases: List[CaseCreate]) -> List[Dict[str, Any]]:
                 "type": case.type,
                 "title": case.title,
                 "action": case.action,
+                "owner_id": case.owner_id,
                 "created": case.created,
                 "created_by": case.created_by,
                 "modified": case.modified,
@@ -72,14 +76,19 @@ async def bulk_create_cases(cases: List[CaseCreate]) -> List[Dict[str, Any]]:
                 "updated_at": datetime.utcnow().isoformat()
             }
             
+            logger.debug(f"Creating case {i+1}/{len(cases)}: {case.title}")
             result = await db_service.create("cases", case_data)
             if result:
                 created_cases.append(result)
+                logger.info(f"Successfully created case {i+1}/{len(cases)}: {case.title} (ID: {result.get('id', 'unknown')})")
             else:
-                logger.error(f"Failed to create case: {case.title}")
+                logger.error(f"Failed to create case {i+1}/{len(cases)}: {case.title}")
+                logger.error(f"Case data that failed: {case_data}")
                 # Continue with other cases instead of failing completely
         
-        logger.info(f"Bulk created {len(created_cases)} cases")
+        logger.info(f"Bulk creation completed: {len(created_cases)}/{len(cases)} cases created successfully")
+        if len(created_cases) < len(cases):
+            logger.warning(f"Some cases failed to create: {len(cases) - len(created_cases)} failures")
         return created_cases
         
     except Exception as e:

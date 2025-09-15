@@ -32,16 +32,20 @@ class DatabaseService:
     async def create(self, table: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create a new record"""
         try:
-            # Remove None values to avoid database errors
+            # Remove None values to avoid database errors, but keep empty strings and 0 values
             clean_data = {k: v for k, v in data.items() if v is not None}
             
+            logger.debug(f"Creating record in {table} with data: {clean_data}")
             response = self.supabase.table(table).insert(clean_data).execute()
             result = self._handle_response(response, f"Create in {table}")
             
             if result and len(result) > 0:
+                logger.debug(f"Successfully created record in {table}: {result[0]}")
                 return result[0]
             else:
                 logger.error(f"Create in {table} failed: No data returned")
+                logger.error(f"Original data: {data}")
+                logger.error(f"Cleaned data: {clean_data}")
                 return None
                 
         except Exception as e:
