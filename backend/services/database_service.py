@@ -143,9 +143,9 @@ class DatabaseService:
     async def get_cases_with_followups(self) -> List[Dict[str, Any]]:
         """Get cases with their followups and user information"""
         try:
-            # Get cases with user information using join
-            cases_response = self.supabase.table("cases").select("*, users(*)").execute()
-            cases = self._handle_response(cases_response, "Get cases with users")
+            # Get cases first
+            cases_response = self.supabase.table("cases").select("*").execute()
+            cases = self._handle_response(cases_response, "Get cases")
             
             if not cases:
                 return []
@@ -162,17 +162,36 @@ class DatabaseService:
                     followups_by_case[case_id] = []
                 followups_by_case[case_id].append(followup)
             
-            # Add followups to cases and ensure user info is properly structured
+            # Get unique user IDs from cases
+            user_ids = set()
+            for case in cases:
+                if case.get("owner_id"):
+                    user_ids.add(case["owner_id"])
+            
+            # Fetch user data for all assigned users
+            users_data = {}
+            if user_ids:
+                users_response = self.supabase.table("users").select("id, name, username").in_("id", list(user_ids)).execute()
+                users = self._handle_response(users_response, "Get users")
+                if users:
+                    users_data = {user["id"]: user for user in users}
+            
+            # Add followups and user info to cases
             for case in cases:
                 case["followups"] = followups_by_case.get(case.get("id"), [])
                 
-                # Ensure user information is properly accessible
-                if case.get("users"):
-                    case["assigned_user_name"] = case["users"].get("name", "Unknown")
-                elif case.get("owner_id"):
-                    case["assigned_user_name"] = f"User {case['owner_id']}"
+                # Add user information
+                owner_id = case.get("owner_id")
+                if owner_id and owner_id in users_data:
+                    case["users"] = users_data[owner_id]
+                    case["assigned_user_name"] = users_data[owner_id].get("name", "Unknown")
+                    logger.debug(f"Case {case.get('id')} assigned to user: {case['assigned_user_name']}")
+                elif owner_id:
+                    case["assigned_user_name"] = f"User {owner_id}"
+                    logger.debug(f"Case {case.get('id')} has owner_id but no user data: {owner_id}")
                 else:
                     case["assigned_user_name"] = "Unassigned"
+                    logger.debug(f"Case {case.get('id')} is unassigned")
             
             return cases
         except Exception as e:
