@@ -41,9 +41,6 @@
 
 ---
 
----
----
-
 ## ⚠️ Legal Disclaimer
 
 - **Personal project**; non-commercial.  
