@@ -9,15 +9,7 @@
 **AI-powered guest relations system** showcasing full-stack development, AI document processing, and workflow automation.  
 **For educational and portfolio purposes only.**
 
----
 
-## ⚠️ Legal Disclaimer
-
-- **Personal project**; non-commercial.  
-- **Not affiliated** with Domes Resorts, Domes Operator, or Domes of Corfu.  
-- **No real hotel data** is used; all content is AI-generated.  
-- Sensitive data has been **removed**.  
-- This repo is **for code demonstration only**.  
 
 ---
 
@@ -49,12 +41,16 @@
 
 ---
 
-## 🎬 Demo / Screenshots
-
-*(Optional: Add screenshots or GIFs of the app UI here)*  
-
+---
 ---
 
+## ⚠️ Legal Disclaimer
+
+- **Personal project**; non-commercial.  
+- **Not affiliated** with Domes Resorts, Domes Operator, or Domes of Corfu.  
+- **No real hotel data** is used; all content is AI-generated.  
+- Sensitive data has been **removed**.  
+- This repo is **for code demonstration only**.  
 ## ⚡ Quick Start
 
 ```bash
