@@ -33,7 +33,7 @@ pdfplumber==0.9.0
 python-docx==0.8.11
 
 # Supabase client (optional, for direct Supabase features)
-supabase==2.0.0
+supabase==2.27.1
 
 # RAG and Vector Database dependencies
 chromadb==0.4.22  # Updated to resolve typer dependency conflict with spacy
