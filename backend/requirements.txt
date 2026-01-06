@@ -15,7 +15,7 @@ numpy==2.3.2
 spacy==3.7.2  # Updated to resolve typer dependency conflict with chromadb
 
 # Database migration
-alembic==1.12.1
+alembic==1.17.2
 
 # HTTP and API
 requests==2.32.5
