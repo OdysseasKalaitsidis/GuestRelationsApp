@@ -1,5 +1,10 @@
 # Guest Relations AI App
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![React](https://img.shields.io/badge/react-18.0+-61dafb.svg)](https://reactjs.org/)
+[![Status](https://img.shields.io/badge/status-active-success.svg)]()
+
 A modern, AI-powered guest relations management system built with FastAPI backend and React frontend. This application streamlines guest relations workflows with intelligent document processing, case management, and automated follow-ups.
 
 ## 🌟 Features
