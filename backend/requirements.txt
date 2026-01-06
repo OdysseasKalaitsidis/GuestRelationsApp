@@ -37,7 +37,7 @@ supabase==2.0.0
 
 # RAG and Vector Database dependencies
 chromadb==0.4.22  # Updated to resolve typer dependency conflict with spacy
-sentence-transformers==2.2.2
+sentence-transformers==5.2.0
 langchain==0.3.27
 langchain-community==0.3.29
 langchain-openai==0.3.32
