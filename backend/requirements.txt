@@ -1,7 +1,7 @@
 # Updated requirements.txt for Supabase Migration
 
 # Core FastAPI dependencies
-fastapi==0.104.1
+fastapi==0.128.0
 uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
 asyncpg==0.29.0  # PostgreSQL async driver (replaces pymysql)
