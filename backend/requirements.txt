@@ -39,7 +39,7 @@ supabase==2.0.0
 chromadb==0.4.22  # Updated to resolve typer dependency conflict with spacy
 sentence-transformers==2.2.2
 langchain==0.3.27
-langchain-community==0.3.29
+langchain-community==0.4.1
 langchain-openai==0.3.32
 langchain-core==0.3.75
 langchain-text-splitters==0.3.11
