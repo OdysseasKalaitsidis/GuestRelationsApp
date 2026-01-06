@@ -36,7 +36,7 @@ python-docx==0.8.11
 supabase==2.0.0
 
 # RAG and Vector Database dependencies
-chromadb==0.4.22  # Updated to resolve typer dependency conflict with spacy
+chromadb==1.4.0  # Updated to resolve typer dependency conflict with spacy
 sentence-transformers==2.2.2
 langchain==0.3.27
 langchain-community==0.3.29
